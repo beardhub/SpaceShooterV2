@@ -8,10 +8,9 @@ var b2Vec2 = Box2D.Common.Math.b2Vec2,
     b2PolygonShape = Box2D.Collision.Shapes.b2PolygonShape,
     b2CircleShape = Box2D.Collision.Shapes.b2CircleShape,
     b2DebugDraw = Box2D.Dynamics.b2DebugDraw;
-var ishipbase, iturret, itractorbeam, istar;
+
+var ishipbase, iturret, itractorbeam, istar, ibeam, isplitter, iheavy, igatling, imissile;
 var gos;
-var entities;
-var runloop;
 var c, ctx;
 var mouse;
 var world;
@@ -37,7 +36,7 @@ function init(){
 	stars = [];
 	for (var i = 0; i < c.width*c.height/3000; i++)
 		stars.push(new Star());
-	
+	squarebody(1,0,0,true);
 	//entities = [];
 	//entities.push(new Entity(100,5));
 
@@ -96,14 +95,13 @@ function init(){
 				break;
 		}
 	});
-	runloop = setInterval(gameloop,1000/60);
+	setInterval(gameloop,1000/60);
 }
 function activatedebug(){
 	var debugDraw = new b2DebugDraw();
 	debugDraw.SetSprite(ctx);
 	debugDraw.SetDrawScale(scale);
 	debugDraw.SetFillAlpha(0.3);
-	debugDraw.SetLineThickness(1.0);
 	debugDraw.SetFlags(b2DebugDraw.e_shapeBit | b2DebugDraw.e_jointBit);
 	world.SetDebugDraw(debugDraw);
 }
@@ -123,8 +121,6 @@ function render(){
 	ctx.clearRect(0,0,c.width,c.height);
 	cam.step();
 	world.DrawDebugData();
-	//ctx.drawImage(ishipbase,player.body.GetPosition().x*scale,player.body.GetPosition().y*scale);
-	//dynamicdraw(ishipbase,player.body.GetPosition().x*scale,player.body.GetPosition().y*scale,0,1);
 	for (var i = 0; i < stars.length; i++)
 		stars[i].render();
 	for (var j = -2; j <= 2; j++)
@@ -154,17 +150,27 @@ function dynamicdraw(img, x, y, angle, scal){
 	ctx.translate(-x,-y)
 }
 function loadGraphics(){
-	ishipbase= new Image();
-	iturret  = new Image();
+	ishipbase    = new Image();
+	iturret      = new Image();
 	itractorbeam = new Image();
-	istar= new Image();
+	istar        = new Image();
+	ibeam        = new Image();
+	isplitter    = new Image();
+	iheavy       = new Image();
+	igatling     = new Image();
+	imissile     = new Image();
 
-	ishipbase.src= "assets/ShipBase.png";
-	iturret.src  = "assets/Turret.png";
+	ishipbase.src    = "assets/ShipBase.png";
+	iturret.src      = "assets/Turret.png";
 	itractorbeam.src = "assets/TractorBeam.png";
-	istar.src= "assets/Star.png";
+	istar.src        = "assets/Star.png";
+	ibeam.src        = "assets/.png";
+	isplitter.src    = "assets/.png";
+	iheavy.src       = "assets/.png";
+	igatling.src     = "assets/.png";
+	imissile.src     = "assets/.png";
 }
-function squarebody(size,x,y){
+function squarebody(size,x,y,sensor){
 	var fixDef = new b2FixtureDef;
 	fixDef.density = .5;
 	fixDef.friction = 0.4;
@@ -173,6 +179,7 @@ function squarebody(size,x,y){
 	bodyDef.type = b2Body.b2_dynamicBody;
 	fixDef.shape = new b2PolygonShape;
 	fixDef.shape.SetAsBox(size, size);
+	fixDef.isSensor = true;
 	bodyDef.position.Set(x, y);
 	var body = world.CreateBody(bodyDef);
 	body.CreateFixture(fixDef);
@@ -180,9 +187,9 @@ function squarebody(size,x,y){
 	return body;
 }
 function Player(){
-	this.body = squarebody(1,0,0);
+	this.body = squarebody(1,0,0,true);
 	this.rl = 0;
-	this.speed = 2;
+	this.speed = 10;
 	this.m = {w : false, a : false, s : false, d : false};
 	this.p = {x : 0, y : 0};
 	this.angle = 0;
@@ -191,39 +198,30 @@ function Player(){
 		var bpos = this.body.GetPosition();
 		this.p = {x : bpos.x, y : bpos.y};
 		if (this.m.w && !this.m.s)
-			//this.body.SetLinearVelocity(new b2Vec2(0,-1));
-			this.body.ApplyImpulse(new b2Vec2(0,-this.speed), this.body.GetLocalCenter());
-			//this.p.y-=this.speed;
+			this.body.ApplyImpulse(new b2Vec2(0,-this.speed/10), this.body.GetLocalCenter());
 		if (!this.m.w && this.m.s)
-			this.body.ApplyImpulse(new b2Vec2(0,this.speed), this.body.GetLocalCenter());
-			//this.body.SetLinearVelocity(new b2Vec2(0,1));
-			//this.p.y+=this.speed;
+			this.body.ApplyImpulse(new b2Vec2(0,this.speed/10), this.body.GetLocalCenter());
 		if (this.m.a && !this.m.d)
-			this.body.ApplyImpulse(new b2Vec2(-this.speed,0), this.body.GetLocalCenter());
-			//this.body.SetLinearVelocity(new b2Vec2(-1,0));
-			//this.p.x-=this.speed;
+			this.body.ApplyImpulse(new b2Vec2(-this.speed/10,0), this.body.GetLocalCenter());
 		if (!this.m.a && this.m.d)
-			this.body.ApplyImpulse(new b2Vec2(this.speed,0), this.body.GetLocalCenter());
-			//this.body.SetLinearVelocity(new b2Vec2(1,0));
-			//this.p.x+=this.speed;
-		//alert(this.body.GetLinearVelocity().Length);
+			this.body.ApplyImpulse(new b2Vec2(this.speed/10,0), this.body.GetLocalCenter());
+
 		if (this.body.GetLinearVelocity().Length() > this.speed){
 			var v = this.body.GetLinearVelocity();
 			v.Normalize();
 			v.Multiply(this.speed);
-			//alert(v.Length());
 			this.body.SetLinearVelocity(v);
 		}
-			//this.body.SetLinearVelocity(this.body.GetLinearVelocity().SetV(.5));
 		this.angle = Math.atan2(mouse.get().y-this.p.y*scale,mouse.get().x-this.p.x*scale);
 	}
 	this.render = function(){
 		dynamicdraw(ishipbase,this.body.GetPosition().x*scale,this.body.GetPosition().y*scale,0,1);
 		dynamicdraw(iturret,this.body.GetPosition().x*scale,this.body.GetPosition().y*scale,this.angle,1);
-		//document.getElementById("output").innerHTML = this.p.x+" "+this.body.GetPosition().x;
-		//var bpos = this.body.GetPosition();
-		//dynamicdraw(ishipbase,0,0,0,1);//this.p.x, this.p.y, 0,1);
-		//dynamicdraw(iturret,bpos.x, bpos.y, this.angle,1);
+
+		if (this.m.w)	dynamicdraw(itractorbeam,this.body.GetPosition().x*scale,this.body.GetPosition().y*scale,Math.PI,1);
+		if (this.m.a)	dynamicdraw(itractorbeam,this.body.GetPosition().x*scale,this.body.GetPosition().y*scale,Math.PI/2,1);
+		if (this.m.s)	dynamicdraw(itractorbeam,this.body.GetPosition().x*scale,this.body.GetPosition().y*scale,0,1);
+		if (this.m.d)	dynamicdraw(itractorbeam,this.body.GetPosition().x*scale,this.body.GetPosition().y*scale,Math.PI/-2,1);
 	}
 }
 function Projectile(){
@@ -239,7 +237,11 @@ function Star(){
 	this.p = randomonscreen();
 	this.scale = Math.random()*1.5+.2;
 	this.update = function(){
-	
+		var n = player.body.GetLinearVelocity().Copy();
+		n.Normalize();
+		n.Multiply(this.scale*5-2);
+		this.p.Subtract(n);
+		/*
 		if (player.m.w)
 			this.p.y-=this.scale*-5;
 		if (player.m.a)
@@ -248,25 +250,13 @@ function Star(){
 			this.p.y+=this.scale*-5;
 		if (player.m.d)
 			this.p.x+=this.scale*-5;
-	
+	*/
 		this.keeponscreen();
 	}
 	this.render = function(){
-		dynamicdraw(istar,this.p.x,this.p.y,0,this.scale);
+		dynamicdraw(istar,this.p.x,this.p.y,0,this.scale*.75);
 	}
 	this.keeponscreen = function(){
-
-		var b = player.body.GetPosition();
-
-		/*if (this.p.x>c.width/2+Maingame.GI.cam.this.p.x)
-			this.p.x-=Maingame.GI.cam.viewportWidth-.1f;
-		else if (this.p.x<-Maingame.GI.cam.viewportWidth/2+Maingame.GI.cam.this.p.x)
-			this.p.x+=Maingame.GI.cam.viewportWidth-.1f;
-		if (this.p.y>Maingame.GI.cam.viewportHeight/2+Maingame.GI.cam.this.p.y)
-			this.p.y-=Maingame.GI.cam.viewportHeight-.1f;
-		else if (this.p.y<-Maingame.GI.cam.viewportHeight/2+Maingame.GI.cam.this.p.y)
-			this.p.y+=Maingame.GI.cam.viewportHeight-.1f;
-*/
 		var b = player.body.GetPosition();
 		if (this.p.x < b.x*scale-c.width/2)
 			this.p.x+=c.width;
@@ -276,11 +266,11 @@ function Star(){
 			this.p.y+=c.height;
 		else if (this.p.y > b.y*scale+c.height/2)
 			this.p.y-=c.height;
-		
 	}
 }
 function randomonscreen(){
-	return {x : Math.random()*c.width-c.width/2, y : Math.random()*c.height-c.height/2};
+	return new b2Vec2(Math.random()*c.width-c.width/2, Math.random()*c.height-c.height/2);
+	//return {x : Math.random()*c.width-c.width/2, y : Math.random()*c.height-c.height/2};
 }
 function getedge(x,y){
 	if (y < player.p.y - c.height/2)
@@ -336,9 +326,4 @@ function Entity(health, damage){
 	this.render = function(){
 		ctx.drawImage(ishipbase,this.x,this.y);
 	}
-}
-function extend(superType) {
-var intermediateConstructor = function() {};
-intermediateConstructor.prototype = superType.prototype;
-return new intermediateConstructor();
 }
