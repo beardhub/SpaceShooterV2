@@ -16,26 +16,44 @@ var c, ctx;
 var mouse;
 var world;
 var player;
+var stars;
 var cam;
-var scale = 30;
+var scale = 32;
 
 function init(){
+
+
 	loadGraphics();
 	cam = new CamMan();
 	c = document.getElementById("canvas");
 	ctx = c.getContext("2d");
 
 	world = new b2World(new b2Vec2(0,0),false);
+	activatedebug();
 
 	gos = [];
 	player = new Player();
 	gos.push(player);
-	for (var i = 0; i < 25; i++)
-		gos.push(new Star());
+	stars = [];
+	for (var i = 0; i < c.width*c.height/3000; i++)
+		stars.push(new Star());
 	
-	entities = [];
-	entities.push(new Entity(100,5));
+	//entities = [];
+	//entities.push(new Entity(100,5));
 
+	document.getElementById("canvas").width = window.innerWidth-25;
+	document.getElementById("canvas").height = document.documentElement.clientHeight-45;
+	stars = [];
+	for (var i = 0; i < c.width*c.height/3000; i++)
+		stars.push(new Star());
+
+	window.onresize = function(){
+		document.getElementById("canvas").width = window.innerWidth-25;
+		document.getElementById("canvas").height = document.documentElement.clientHeight-25;
+		stars = [];
+		for (var i = 0; i < c.width*c.height/3000; i++)
+			stars.push(new Star());
+	}
 
 	mouse = {x : 0, y : 0, get : function(){
 		return {x:this.x - cam.pos.x, y:this.y - cam.pos.y};
@@ -78,23 +96,41 @@ function init(){
 				break;
 		}
 	});
-	runloop = setInterval(gameloop,15);
+	runloop = setInterval(gameloop,1000/60);
+}
+function activatedebug(){
+	var debugDraw = new b2DebugDraw();
+	debugDraw.SetSprite(ctx);
+	debugDraw.SetDrawScale(scale);
+	debugDraw.SetFillAlpha(0.3);
+	debugDraw.SetLineThickness(1.0);
+	debugDraw.SetFlags(b2DebugDraw.e_shapeBit | b2DebugDraw.e_jointBit);
+	world.SetDebugDraw(debugDraw);
 }
 function gameloop(){
 	update();
 	render();
 }
 function update(){
+	world.Step(1/60,6,2);
+	for (var i = 0; i < stars.length; i++)
+		stars[i].update();
 	for (var i = 0; i < gos.length; i++)
 		gos[i].update();
 }
 function render(){
         ctx.save();
-        ctx.translate(0,0);
 	ctx.clearRect(0,0,c.width,c.height);
 	cam.step();
-	for (var i = 0; i < gos.length; i++)
-		gos[i].render();
+	world.DrawDebugData();
+	//ctx.drawImage(ishipbase,player.body.GetPosition().x*scale,player.body.GetPosition().y*scale);
+	//dynamicdraw(ishipbase,player.body.GetPosition().x*scale,player.body.GetPosition().y*scale,0,1);
+	for (var i = 0; i < stars.length; i++)
+		stars[i].render();
+	for (var j = -2; j <= 2; j++)
+		for (var i = 0; i < gos.length; i++)
+			if (gos[i].rl==j)
+				gos[i].render();
 	ctx.restore();
 }
 function CamMan() {
@@ -104,17 +140,18 @@ function CamMan() {
     };
     this.step = function() {
         var v = player.p;
-        this.pos.x = -v.x * 1 + c.width / 2;
-        this.pos.y = -v.y * 1 + c.height / 2;
+        //var v = player.body.GetPosition();
+        this.pos.x = -v.x * scale + c.width / 2;
+        this.pos.y = -v.y * scale + c.height / 2;
         ctx.translate(this.pos.x, this.pos.y);
     };
 }
-function dynamicdraw(img, x, y, angle){
-	ctx.save();
+function dynamicdraw(img, x, y, angle, scal){
 	ctx.translate(x,y)
 	ctx.rotate(angle+Math.PI/2);
-	ctx.drawImage(img,-img.width/2,-img.height/2);
-	ctx.restore();
+	ctx.drawImage(img,-img.width/2,-img.height/2,img.width*scal,img.height*scal);
+	ctx.rotate(-angle-Math.PI/2);
+	ctx.translate(-x,-y)
 }
 function loadGraphics(){
 	ishipbase= new Image();
@@ -137,28 +174,56 @@ function squarebody(size,x,y){
 	fixDef.shape = new b2PolygonShape;
 	fixDef.shape.SetAsBox(size, size);
 	bodyDef.position.Set(x, y);
-	world.CreateBody(bodyDef).CreateFixture(fixDef);
+	var body = world.CreateBody(bodyDef);
+	body.CreateFixture(fixDef);
+	body.SetFixedRotation(true);
+	return body;
 }
 function Player(){
-	this.speed = 5;
+	this.body = squarebody(1,0,0);
+	this.rl = 0;
+	this.speed = 2;
 	this.m = {w : false, a : false, s : false, d : false};
 	this.p = {x : 0, y : 0};
 	this.angle = 0;
-	this.body = squarebody(1,0,0);
 	this.update = function(){
+		
+		var bpos = this.body.GetPosition();
+		this.p = {x : bpos.x, y : bpos.y};
 		if (this.m.w && !this.m.s)
-			this.p.y-=this.speed;
+			//this.body.SetLinearVelocity(new b2Vec2(0,-1));
+			this.body.ApplyImpulse(new b2Vec2(0,-this.speed), this.body.GetLocalCenter());
+			//this.p.y-=this.speed;
 		if (!this.m.w && this.m.s)
-			this.p.y+=this.speed;
+			this.body.ApplyImpulse(new b2Vec2(0,this.speed), this.body.GetLocalCenter());
+			//this.body.SetLinearVelocity(new b2Vec2(0,1));
+			//this.p.y+=this.speed;
 		if (this.m.a && !this.m.d)
-			this.p.x-=this.speed;
+			this.body.ApplyImpulse(new b2Vec2(-this.speed,0), this.body.GetLocalCenter());
+			//this.body.SetLinearVelocity(new b2Vec2(-1,0));
+			//this.p.x-=this.speed;
 		if (!this.m.a && this.m.d)
-			this.p.x+=this.speed;
-		this.angle = Math.atan2(mouse.get().y-this.p.y,mouse.get().x-this.p.x);
+			this.body.ApplyImpulse(new b2Vec2(this.speed,0), this.body.GetLocalCenter());
+			//this.body.SetLinearVelocity(new b2Vec2(1,0));
+			//this.p.x+=this.speed;
+		//alert(this.body.GetLinearVelocity().Length);
+		if (this.body.GetLinearVelocity().Length() > this.speed){
+			var v = this.body.GetLinearVelocity();
+			v.Normalize();
+			v.Multiply(this.speed);
+			//alert(v.Length());
+			this.body.SetLinearVelocity(v);
+		}
+			//this.body.SetLinearVelocity(this.body.GetLinearVelocity().SetV(.5));
+		this.angle = Math.atan2(mouse.get().y-this.p.y*scale,mouse.get().x-this.p.x*scale);
 	}
 	this.render = function(){
-		dynamicdraw(ishipbase, this.p.x, this.p.y, 0);
-		dynamicdraw(iturret, this.p.x, this.p.y, this.angle);
+		dynamicdraw(ishipbase,this.body.GetPosition().x*scale,this.body.GetPosition().y*scale,0,1);
+		dynamicdraw(iturret,this.body.GetPosition().x*scale,this.body.GetPosition().y*scale,this.angle,1);
+		//document.getElementById("output").innerHTML = this.p.x+" "+this.body.GetPosition().x;
+		//var bpos = this.body.GetPosition();
+		//dynamicdraw(ishipbase,0,0,0,1);//this.p.x, this.p.y, 0,1);
+		//dynamicdraw(iturret,bpos.x, bpos.y, this.angle,1);
 	}
 }
 function Projectile(){
@@ -170,22 +235,47 @@ function Projectile(){
 	};
 }
 function Star(){
+	this.rl = -2;
 	this.p = randomonscreen();
+	this.scale = Math.random()*1.5+.2;
 	this.update = function(){
+	
+		if (player.m.w)
+			this.p.y-=this.scale*-5;
+		if (player.m.a)
+			this.p.x-=this.scale*-5;
+		if (player.m.s)
+			this.p.y+=this.scale*-5;
+		if (player.m.d)
+			this.p.x+=this.scale*-5;
+	
 		this.keeponscreen();
 	}
 	this.render = function(){
-		dynamicdraw(istar,this.p.x,this.p.y,0);
+		dynamicdraw(istar,this.p.x,this.p.y,0,this.scale);
 	}
 	this.keeponscreen = function(){
-		if (this.p.x < player.p.x-c.width/2)
-			this.p.x+=c.width+1;
-		else if (this.p.x > player.p.x+c.width/2)
-			this.p.x-=c.width+1;
-		if (this.p.y < player.p.y-c.height/2)
-			this.p.y+=c.height+1;
-		else if (this.p.y > player.p.y+c.height/2)
-			this.p.y-=c.height+1;
+
+		var b = player.body.GetPosition();
+
+		/*if (this.p.x>c.width/2+Maingame.GI.cam.this.p.x)
+			this.p.x-=Maingame.GI.cam.viewportWidth-.1f;
+		else if (this.p.x<-Maingame.GI.cam.viewportWidth/2+Maingame.GI.cam.this.p.x)
+			this.p.x+=Maingame.GI.cam.viewportWidth-.1f;
+		if (this.p.y>Maingame.GI.cam.viewportHeight/2+Maingame.GI.cam.this.p.y)
+			this.p.y-=Maingame.GI.cam.viewportHeight-.1f;
+		else if (this.p.y<-Maingame.GI.cam.viewportHeight/2+Maingame.GI.cam.this.p.y)
+			this.p.y+=Maingame.GI.cam.viewportHeight-.1f;
+*/
+		var b = player.body.GetPosition();
+		if (this.p.x < b.x*scale-c.width/2)
+			this.p.x+=c.width;
+		else if (this.p.x > b.x*scale+c.width/2)
+			this.p.x-=c.width;
+		if (this.p.y < b.y*scale-c.height/2)
+			this.p.y+=c.height;
+		else if (this.p.y > b.y*scale+c.height/2)
+			this.p.y-=c.height;
 		
 	}
 }
