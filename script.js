@@ -20,43 +20,25 @@ var cam;
 var scale = 32;
 
 function init(){
-
-
 	loadGraphics();
 	cam = new CamMan();
 	c = document.getElementById("canvas");
 	ctx = c.getContext("2d");
-
-	world = new b2World(new b2Vec2(0,0),false);
-	activatedebug();
-
-	gos = [];
-	player = new Player();
-	gos.push(player);
-	stars = [];
-	for (var i = 0; i < c.width*c.height/3000; i++)
-		stars.push(new Star());
-	squarebody(1,0,0,true);
-	//entities = [];
-	//entities.push(new Entity(100,5));
-
-	document.getElementById("canvas").width = window.innerWidth-25;
-	document.getElementById("canvas").height = document.documentElement.clientHeight-45;
-	stars = [];
-	for (var i = 0; i < c.width*c.height/3000; i++)
-		stars.push(new Star());
-
-	window.onresize = function(){
-		document.getElementById("canvas").width = window.innerWidth-25;
-		document.getElementById("canvas").height = document.documentElement.clientHeight-25;
-		stars = [];
-		for (var i = 0; i < c.width*c.height/3000; i++)
-			stars.push(new Star());
-	}
-
 	mouse = {x : 0, y : 0, get : function(){
 		return {x:this.x - cam.pos.x, y:this.y - cam.pos.y};
 	}};
+
+	world = new b2World(new b2Vec2(0,0),false);
+	//activatedebug();
+
+	gos = [];
+	player = new Player();
+
+	dostars();
+
+	window.onresize = function(){dostars();}
+	window.onclick = function(){player.shoot();}
+
 	document.onmousemove = function(evt){
 		var rect = c.getBoundingClientRect();
 		mouse = {
@@ -97,6 +79,13 @@ function init(){
 	});
 	setInterval(gameloop,1000/60);
 }
+function dostars(){
+	document.getElementById("canvas").width = window.innerWidth-250;
+	document.getElementById("canvas").height = document.documentElement.clientHeight-20;
+	stars = [];
+	for (var i = 0; i < c.width*c.height/3000; i++)
+		stars.push(new Star());
+}
 function activatedebug(){
 	var debugDraw = new b2DebugDraw();
 	debugDraw.SetSprite(ctx);
@@ -123,6 +112,15 @@ function render(){
 	world.DrawDebugData();
 	for (var i = 0; i < stars.length; i++)
 		stars[i].render();
+	/*
+	ros = [];
+	for (var j = -2; j <= 0; j++)
+		for (var i = 0; i < gos.length; i++)
+			if (gos[i].rl===j)
+				ros.push(gos[i]);
+	for (var i = 0; i < ros.length; i++)
+		ros[i].render();
+	*/
 	for (var j = -2; j <= 2; j++)
 		for (var i = 0; i < gos.length; i++)
 			if (gos[i].rl==j)
@@ -142,12 +140,41 @@ function CamMan() {
         ctx.translate(this.pos.x, this.pos.y);
     };
 }
-function dynamicdraw(img, x, y, angle, scal){
-	ctx.translate(x,y)
+function dynamicdraw(img, x, y, angle, scal, centerx, centery, offcent){
+
+
+	centerx*=scal;
+	centery*=scal;
+	//x/=scale;
+	//y/=scale;
+	ctx.translate(x,y);
+	if (offcent)
+	ctx.translate(centerx,centery);
 	ctx.rotate(angle+Math.PI/2);
+	if (offcent)
+	ctx.translate(-centerx,-centery);
+	if (offcent)
+	ctx.drawImage(img,0,0,img.width*scal,img.height*scal);
+	else 
 	ctx.drawImage(img,-img.width/2,-img.height/2,img.width*scal,img.height*scal);
+	if (offcent)
+	ctx.translate(centerx,centery);
 	ctx.rotate(-angle-Math.PI/2);
-	ctx.translate(-x,-y)
+	if (offcent)
+	ctx.translate(-centerx,-centery);
+	ctx.translate(-x,-y);
+
+
+
+	/*centerx*=scal;
+	centery*=scal;
+	ctx.translate(x+centerx,y+centery);
+	ctx.rotate(angle+Math.PI/2);
+	ctx.translate(-centerx,-centery);
+	ctx.drawImage(img,0,0,img.width*scal,img.height*scal);
+	ctx.translate(x+centerx,y+centery);
+	ctx.rotate(-angle-Math.PI/2);
+	ctx.translate(-x-centerx,-y-centery);*/
 }
 function loadGraphics(){
 	ishipbase    = new Image();
@@ -164,11 +191,11 @@ function loadGraphics(){
 	iturret.src      = "assets/Turret.png";
 	itractorbeam.src = "assets/TractorBeam.png";
 	istar.src        = "assets/Star.png";
-	ibeam.src        = "assets/.png";
-	isplitter.src    = "assets/.png";
-	iheavy.src       = "assets/.png";
-	igatling.src     = "assets/.png";
-	imissile.src     = "assets/.png";
+	ibeam.src        = "assets/BeamIcon.png";
+	isplitter.src    = "assets/SplitterIcon.png";
+	iheavy.src       = "assets/HeavyIcon.png";
+	igatling.src     = "assets/GatlingIcon.png";
+	imissile.src     = "assets/MissileIcon.png";
 }
 function squarebody(size,x,y,sensor){
 	var fixDef = new b2FixtureDef;
@@ -186,13 +213,35 @@ function squarebody(size,x,y,sensor){
 	body.SetFixedRotation(true);
 	return body;
 }
+function circlebody(size,x,y,sensor){
+	var fixDef = new b2FixtureDef;
+	fixDef.density = .5;
+	fixDef.friction = 0.4;
+	fixDef.restitution = 0.2;
+	var bodyDef = new b2BodyDef;
+	bodyDef.type = b2Body.b2_dynamicBody;
+	fixDef.shape = new b2CircleShape(size);
+	fixDef.isSensor = true;
+	bodyDef.position.Set(x, y);
+	var body = world.CreateBody(bodyDef);
+	body.CreateFixture(fixDef);
+	body.SetFixedRotation(true);
+	return body;	
+}
 function Player(){
 	this.body = squarebody(1,0,0,true);
 	this.rl = 0;
 	this.speed = 10;
 	this.m = {w : false, a : false, s : false, d : false};
 	this.p = {x : 0, y : 0};
-	this.angle = 0;
+	this.aim = new b2Vec2(mouse.get().y-this.p.y*scale,mouse.get().x-this.p.x*scale);
+	this.angle = Math.atan2(this.aim.x,this.aim.y);
+	this.arsenal = [new pBeam()];//,new pSplitter(),new pHeavy(),new pGatling(),new pMissile()];
+	this.curwep = this.arsenal[0];
+	gos.push(this);
+	this.shoot = function(){
+		this.curwep.spawn();
+	}
 	this.update = function(){
 		
 		var bpos = this.body.GetPosition();
@@ -212,7 +261,9 @@ function Player(){
 			v.Multiply(this.speed);
 			this.body.SetLinearVelocity(v);
 		}
-		this.angle = Math.atan2(mouse.get().y-this.p.y*scale,mouse.get().x-this.p.x*scale);
+		this.aim = new b2Vec2(mouse.get().x-this.p.x*scale,mouse.get().y-this.p.y*scale);
+		this.angle = Math.atan2(this.aim.y,this.aim.x);
+		//this.angle = Math.atan2(mouse.get().y-this.p.y*scale,mouse.get().x-this.p.x*scale);
 	}
 	this.render = function(){
 		dynamicdraw(ishipbase,this.body.GetPosition().x*scale,this.body.GetPosition().y*scale,0,1);
@@ -224,13 +275,32 @@ function Player(){
 		if (this.m.d)	dynamicdraw(itractorbeam,this.body.GetPosition().x*scale,this.body.GetPosition().y*scale,Math.PI/-2,1);
 	}
 }
-function Projectile(){
+function pBeam(){
+	this.damage = 3;
+	this.range = 25;
+	this.speed = 25;
+	this.rl = -1;
+	this.body = null;
+	this.spawn = function(){
+		var b = new pBeam();
+		b.makebody();
+		var a = player.aim.Copy();
+		a.Normalize();
+		a.Multiply(this.speed);
+		b.body.SetLinearVelocity(a);
+		gos.push(b);
+	}
+	this.makebody = function(){
+		this.body = circlebody(.3,player.p.x,player.p.y,true);
+	}
 	this.update = function(){
 
-	};
+	}
 	this.render = function(){
-
-	};
+		var b = this.body.GetPosition(),
+			v = this.body.GetLinearVelocity();
+		dynamicdraw(ibeam,(b.x-1)*scale,(b.y-1)*scale,Math.atan2(v.y,v.x),.5,ibeam.width/2,ibeam.height-ibeam.width/2,true);
+	}
 }
 function Star(){
 	this.rl = -2;
@@ -238,8 +308,8 @@ function Star(){
 	this.scale = Math.random()*1.5+.2;
 	this.update = function(){
 		var n = player.body.GetLinearVelocity().Copy();
-		n.Normalize();
-		n.Multiply(this.scale*5-2);
+		//n.Normalize();
+		n.Multiply(this.scale*.8);
 		this.p.Subtract(n);
 		/*
 		if (player.m.w)
