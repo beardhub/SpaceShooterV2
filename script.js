@@ -29,7 +29,7 @@ function init(){
 	}};
 
 	world = new b2World(new b2Vec2(0,0),false);
-	//activatedebug();
+	activatedebug();
 
 	gos = [];
 	player = new Player();
