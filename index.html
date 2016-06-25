@@ -3,6 +3,18 @@
 <head>
 	<title id="title">Space Shooter</title>
 	<meta charset="utf-8">
+	<style>
+		image, canvas {
+		    user-select: none;
+			draggable : false;
+		    -ms-user-select: none;
+		    -webkit-user-select: none;
+		    -khtml-user-select: none;
+		    -moz-user-select: none;
+		    -webkit-touch-callout: none;
+		    -webkit-user-drag: none;
+		}
+	</style>
 
 	<script type="text/javascript" src="Box2D.js"></script>
 
@@ -10,11 +22,12 @@
 </head>
 <body onload="init();">
 	<canvas id="canvas" width="1200" height="800" style="background-color:black;float:left;"></canvas>
-	<div id="info" style="float:left;word-wrap:break-word;">
+	<div id="info" style="float:left;word-wrap:break-word;user-select:none;">
 		Controls:<br>
 		W, A, S, D to move<br>
 		Mouse to aim<br>
-		Left click to shoot
+		Left click to shoot<br>
+		+ - to zoom in and out
 	</div>
 	<div id="output" style="float:left;"></div>
 </body>
