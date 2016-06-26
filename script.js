@@ -42,7 +42,7 @@ function init(){
 	window.onmousedown = function(){player.tryshoot = true;}
 	window.onmouseup = function(){player.tryshoot = false;}
 
-	document.getElementById("info").innerHTML+="<div id=\"zoom\">1.0x</div>";
+	document.getElementById("info").innerHTML+="<br><div id=\"zoom\">1.0x</div>";
 
 	mouse = {
 		x: 0,
