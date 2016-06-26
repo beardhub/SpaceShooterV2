@@ -42,8 +42,7 @@ function init(){
 	window.onmousedown = function(){player.tryshoot = true;}
 	window.onmouseup = function(){player.tryshoot = false;}
 
-	alert("hi");
-	document.getElementById("info").innerHTML+="<br><div id=\"zoom\">1.0x</div>";
+	document.getElementById("info").innerHTML+="<div id=\"zoom\">1.0x</div>";
 
 	mouse = {
 		x: 0,
@@ -78,9 +77,9 @@ window.addEventListener("mousewheel", function(e){
 		mouse.y = evt.clientY - rect.top;
 	});
 	document.getElementById("canvas").addEventListener('drag',function(evt){
-		var rect = c.getBoundingClientRect();
+		//var rect = c.getBoundingClientRect();
 		mouse.x = evt.clientX - rect.left;
-		mouse.y = evt.clientY - rect.top;
+		//mouse.y = evt.clientY - rect.top;
 	});
 
 	document.addEventListener('keydown', function(event) {
