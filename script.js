@@ -47,30 +47,8 @@ function init(){
 	mouse = {
 		x: 0,
 		y: 0,
-		get : function(){return {x:this.x/viewscale - (cam.pos.x)/viewscale, y:this.y/viewscale - (cam.pos.y)/viewscale};},
-		lst : 0//new Date().getTime()
+		get : function(){return {x:(this.x - cam.pos.x)/viewscale/scale, y:(this.y - cam.pos.y)/viewscale/scale};},
 	};
-	/*
-window.addEventListener("mousewheel", function(e){
-//console.log(new Date().getTime()-mouse.lst);
-		if (new Date().getTime()-mouse.lst > 300){
-			console.log(new Date().getTime()-mouse.lst);
-			zoom(e.wheelDelta);
-			mouse.lst = new Date().getTime();
-		}
-	});
-
-	document.getElementById("canvas").onmousemove = function(evt){
-		var rect = c.getBoundingClientRect();
-		mouse.x = evt.clientX - rect.left;
-		mouse.y = evt.clientY - rect.top;
-	};
-	document.getElementById("canvas").ondrag = function(evt){
-		var rect = c.getBoundingClientRect();
-		mouse.x = evt.clientX - rect.left;
-		mouse.y = evt.clientY - rect.top;
-	};
-*/
 	document.getElementById("canvas").addEventListener('mousemove',function(evt){
 		var rect = c.getBoundingClientRect();
 		mouse.x = evt.clientX - rect.left;
@@ -84,40 +62,20 @@ window.addEventListener("mousewheel", function(e){
 
 	document.addEventListener('keydown', function(event) {
 		switch(event.keyCode){
-			case 87:
-				player.m.w = true;
-				break;
-			case 65:
-				player.m.a = true;
-				break;
-			case 83:
-				player.m.s = true;
-				break;
-			case 68:
-				player.m.d = true;
-				break;
-			case 187:
-				zoom(1);
-				break;
-			case 189:
-				zoom(-1);
-				break;
+			case 87:	player.m.w = true;	break;
+			case 65:	player.m.a = true;	break;
+			case 83:	player.m.s = true;	break;
+			case 68:	player.m.d = true;	break;
+			case 187:	zoom(1);		break;
+			case 189:	zoom(-1);		break;
 		}
 	});
 	document.addEventListener('keyup', function(event) {
 		switch(event.keyCode){
-			case 87:
-				player.m.w = false;
-				break;
-			case 65:
-				player.m.a = false;
-				break;
-			case 83:
-				player.m.s = false;
-				break;
-			case 68:
-				player.m.d = false;
-				break;
+			case 87:	player.m.w = false;	break;
+			case 65:	player.m.a = false;	break;
+			case 83:	player.m.s = false;	break;
+			case 68:	player.m.d = false;	break;
 		}
 	});
 	setInterval(gameloop,1000/60);
@@ -127,7 +85,7 @@ function setdevtools(){
 	this.imgbox = false;
 }
 function zoom(dir){
-	var sets = [.25,.35,.5,.7,1,1.3,1.7,2.2,2.8,3.5,4.3];
+	var sets = [.25,.35,.5,.75,1,1.25,1.75,2.25,3,3.5,4.5];
 	if (viewslot+dir >= 0 && viewslot+dir <= 10){
 		viewslot+=dir;
 		viewscale = sets[viewslot];
@@ -158,7 +116,6 @@ function gameloop(){
 	render();
 }
 function update(){
-	mouse.lst+=1;
 	world.Step(1/60,6,2);
 	for (var i = 0; i < cntrs.length; i++)
 		cntrs[i].update();
@@ -170,11 +127,10 @@ function update(){
 function render(){
 	ctx.clearRect(0,0,c.width,c.height);
 	ctx.save();
-	//ctx.translate(c.width*scl/2,c.height*scl/2);
 	cam.step();
 	ctx.scale(viewscale,viewscale);
 	if (devtools.b2debug)
-	world.DrawDebugData();
+		world.DrawDebugData();
 	for (var i = 0; i < stars.length; i++)
 		stars[i].render();
 	for (var j = -2; j <= 2; j++)
@@ -184,30 +140,26 @@ function render(){
 	ctx.restore();
 }
 function CamMan() {
-    this.pos = {
-        x : 0,
-        y : 0
-    };
-    this.step = function() {
-        var v = player.p;
-        this.pos.x = -v.x * scale*viewscale + c.width/2;
-        this.pos.y = -v.y * scale*viewscale+ c.height/2;
-        ctx.translate(this.pos.x, this.pos.y);
-    };
+	this.pos = {
+		x : 0,
+		y : 0
+	};
+	this.step = function() {
+		var v = player.p;
+		this.pos.x = -v.x * scale * viewscale + c.width/2;
+		this.pos.y = -v.y * scale * viewscale + c.height/2;
+		ctx.translate(this.pos.x, this.pos.y);
+	};
 }
 function dynamicdraw(img, x, y, a, scal, cx, cy, offcent){
-
 	if (!offcent){
 		cx = img.width/2;
-		cy = img.height/2;
-	}
-	//scal*=scale/32;
+		cy = img.height/2;}
 	cx*=scal;
 	cy*=scal;
 	x*=scale;
 	y*=scale;
 	a+=Math.PI/2;
-
 
 	ctx.save();
 	ctx.translate(x,y);
@@ -215,7 +167,7 @@ function dynamicdraw(img, x, y, a, scal, cx, cy, offcent){
 	ctx.translate(-cx,-cy);
 	ctx.drawImage(img,0,0,img.width*scal,img.height*scal);
 	if (devtools.imgbox)
-	ctx.fillRect(0,0,img.width*scal,img.height*scal);
+		ctx.fillRect(0,0,img.width*scal,img.height*scal);
 	ctx.restore();
 }
 function loadGraphics(){
@@ -276,7 +228,7 @@ function Player(){
 	this.speed = 10;
 	this.m = {w : false, a : false, s : false, d : false};
 	this.p = {x : 0, y : 0};
-	this.aim = new b2Vec2(0,1);//new b2Vec2(mouse.get().y-this.p.y,mouse.get().x-this.p.x);
+	this.aim = new b2Vec2(0,1);
 	this.angle = Math.atan2(this.aim.x,this.aim.y);
 	this.arsenal = [new pBeam()];//,new pSplitter(),new pHeavy(),new pGatling(),new pMissile()];
 	this.curwep = this.arsenal[0];
@@ -307,14 +259,12 @@ function Player(){
 			v.Multiply(this.speed);
 			this.body.SetLinearVelocity(v);
 		}
-		this.aim = new b2Vec2(mouse.get().x-this.p.x*scale,mouse.get().y-this.p.y*scale);
-		//this.aim = new b2Vec2(mouse.get().x, mouse.get().y);
-		this.angle = Math.atan2(this.aim.y,this.aim.x);
-		//this.angle = Math.atan2(mouse.get().y-this.p.y,mouse.get().x-this.p.x);
+		this.aim = new b2Vec2(mouse.get().x-this.p.x,mouse.get().y-this.p.y);
+		this.angle = Math.atan2(this.aim.y,this.aim.x);		
 	}
 	this.render = function(){
-		dynamicdraw(ishipbase,this.body.GetPosition().x,this.body.GetPosition().y,0,1);
-		dynamicdraw(iturret,this.body.GetPosition().x,this.body.GetPosition().y,this.angle,1);
+		dynamicdraw(ishipbase,this.p.x,this.p.y,0,1);
+		dynamicdraw(iturret,this.p.x,this.p.y,this.angle,1);
 
 		if (this.m.w)	dynamicdraw(itractorbeam,this.body.GetPosition().x,this.body.GetPosition().y,Math.PI,1);
 		if (this.m.a)	dynamicdraw(itractorbeam,this.body.GetPosition().x,this.body.GetPosition().y,Math.PI/2,1);
@@ -385,7 +335,7 @@ function pBeam(){
 			this.dispose();
 	}
 	this.render = function(){
-		var b = this.body.GetWorldCenter(),
+		var b = this.body.GetPosition(),
 			v = this.body.GetLinearVelocity();
 		dynamicdraw(ibeam,(b.x),(b.y),Math.atan2(v.y,v.x),.5,ibeam.width/2,ibeam.width/2,true);
 	}
@@ -400,19 +350,8 @@ function Star(){
 	this.scale = Math.random()*1.5+.2;
 	this.update = function(){
 		var n = player.body.GetLinearVelocity().Copy();
-		//n.Normalize();
 		n.Multiply(this.scale/scale);
 		this.p.Subtract(n);
-		/*
-		if (player.m.w)
-			this.p.y-=this.scale*-5/scale;
-		if (player.m.a)
-			this.p.x-=this.scale*-1;
-		if (player.m.s)
-			this.p.y+=this.scale*-5;
-		if (player.m.d)
-			this.p.x+=this.scale*-5;
-	*/
 		this.keeponscreen();
 	}
 	this.render = function(){
@@ -434,60 +373,4 @@ function Star(){
 }
 function randomonscreen(){
 	return new b2Vec2((Math.random()*c.width-c.width/2)/scale/viewscale, (Math.random()*c.height-c.height/2)/scale/viewscale);
-	//return {x : Math.random()*c.width-c.width/2, y : Math.random()*c.height-c.height/2};
-}
-function getedge(x,y){
-	if (y < player.p.y - c.height/2)
-		return setedge(2);
-	if (x < player.p.x - c.width/2)
-		return setedge(3);
-	if (y > player.p.y + c.height/2)
-		return setedge(0);
-	if (x > player.p.x + c.width/2)
-		return setedge(1);
-}
-function setedge(edge){
-	switch(edge){
-		case 0:
-			return {x : Math.random()*c.width-c.width/2-player.p.x, y : player.p.y-c.height/2};
-		case 1:
-			return {x : player.p.x-c.width/2, y : Math.random()*c.height-c.height/2-player.p.y};
-		case 2:
-			return {x : Math.random()*c.width-c.width/2-player.p.x, y : player.p.y+c.height/2};
-		case 3:
-			return {x : player.p.x+c.width/2, y : Math.random()*c.height-c.height/2-player.p.y};
-	}
-}
-function randomonedge(){
-	switch(Math.floor(Math.random()*4)){
-		case 0:
-			return {x : Math.random()*c.width-c.width/2-player.p.x, y : player.p.y-c.height/2-Math.random()*10};
-		case 1:
-			return {x : player.p.x-c.width/2-Math.random()*10, y : Math.random()*c.height-c.height/2-player.p.y};
-		case 2:
-			return {x : Math.random()*c.width-c.width/2-player.p.x, y : player.p.y+c.height/2+Math.random()*10};
-		case 3:
-			return {x : player.p.x+c.width/2+Math.random()*10, y : Math.random()*c.height-c.height/2-player.p.y};
-	}
-}
-function onscreen(x,y){
-	return Math.abs(x-player.p.x)<c.width/2+15 && Math.abs(y-player.p.y)<c.height/2+15;
-}
-function Entity(health, damage){
-	this.health = health;
-	this.damage = damage;
-	this.x = Math.random()*800;
-	this.y = Math.random()*600;
-	this.getStatus = function(){
-		return this.health+" "+this.damage;
-	}
-	this.takeDamage = function(damage){
-		this.health-=damage;
-	}
-	this.update = function(){
-		this.x++;
-	}
-	this.render = function(){
-		ctx.drawImage(ishipbase,this.x,this.y);
-	}
 }
