@@ -72,14 +72,14 @@ window.addEventListener("mousewheel", function(e){
 	};
 */
 	document.getElementById("canvas").addEventListener('mousemove',function(evt){
-		//var rect = c.getBoundingClientRect();
-		//mouse.x = evt.clientX - rect.left;
-		//mouse.y = evt.clientY - rect.top;
+		var rect = c.getBoundingClientRect();
+		mouse.x = evt.clientX - rect.left;
+		mouse.y = evt.clientY - rect.top;
 	});
 	document.getElementById("canvas").addEventListener('drag',function(evt){
-		//var rect = c.getBoundingClientRect();
-		//mouse.x = evt.clientX - rect.left;
-		//mouse.y = evt.clientY - rect.top;
+		var rect = c.getBoundingClientRect();
+		mouse.x = evt.clientX - rect.left;
+		mouse.y = evt.clientY - rect.top;
 	});
 
 	document.addEventListener('keydown', function(event) {
