@@ -18,7 +18,7 @@ var player;
 var stars;
 var cam;
 var scale = 32;
-var viewscale = 1;
+var viewscale = 1, viewslot = 4;
 var devtools;
 
 function init(){
@@ -41,6 +41,8 @@ function init(){
 	window.onresize = function(){resizewin();}
 	window.onmousedown = function(){player.tryshoot = true;}
 	window.onmouseup = function(){player.tryshoot = false;}
+
+	document.getElementById("info").innerHTML+="<div id=\"zoom\">1.0x</div>";
 
 	mouse = {
 		x: 0,
@@ -95,10 +97,10 @@ window.addEventListener("mousewheel", function(e){
 				player.m.d = true;
 				break;
 			case 187:
-				zoom(30);
+				zoom(1);
 				break;
 			case 189:
-				zoom(-30);
+				zoom(-1);
 				break;
 		}
 	});
@@ -125,8 +127,11 @@ function setdevtools(){
 	this.imgbox = false;
 }
 function zoom(dir){
-	if (viewscale+dir/100*viewscale>.2&&viewscale+dir/100*viewscale<5){
-		viewscale+=dir/100*viewscale;
+	var sets = [.25,.35,.5,.7,1,1.3,1.7,2.2,2.8,3.5,4.3];
+	if (viewslot+dir >= 0 && viewslot+dir <= 10){
+		viewslot+=dir;
+		viewscale = sets[viewslot];
+		document.getElementById("zoom").innerHTML = viewscale+"x zoom";
 		dostars();
 	}
 }
