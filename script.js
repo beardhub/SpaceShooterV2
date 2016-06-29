@@ -10,7 +10,7 @@ var b2Vec2 = Box2D.Common.Math.b2Vec2,
 	b2DebugDraw = Box2D.Dynamics.b2DebugDraw,
 	b2ContactListener = Box2D.Dynamics.b2ContactListener;
 
-var ishipbase, iturret, itractorbeam, istar, ibeam, isplitter, iheavy, igatling, imissile, iufo, iufoeye, iaim, ihealthbar;
+var ishipbase, iturret, itractorbeam, istar, ibeam, isplitter, iheavy, igatling, ipurifier, imissile, iufo, iufoeye, iaim, ihealthbar;
 var gos, counters;
 var c, ctx;
 var mouse;
@@ -83,6 +83,7 @@ function init(){
 			case 65:	player.m.a = true;	break;
 			case 83:	player.m.s = true;	break;
 			case 68:	player.m.d = true;	break;
+			case 32:	player.tryshoot=true;	break;
 			case 187:	zoom(1);		break;
 			case 189:	zoom(-1);		break;
 		}
@@ -93,6 +94,7 @@ function init(){
 			case 65:	player.m.a = false;	break;
 			case 83:	player.m.s = false;	break;
 			case 68:	player.m.d = false;	break;
+			case 32:	player.tryshoot=false;	break;
 		}
 	});
 
@@ -200,6 +202,7 @@ function loadGraphics(){
 	isplitter	= new Image();
 	iheavy		= new Image();
 	igatling	= new Image();
+	ipurifier	= new Image();
 	imissile	= new Image();
 	iufo		= new Image();
 	iufoeye		= new Image();
@@ -210,11 +213,12 @@ function loadGraphics(){
 	iturret.src	= "assets/Turret.png";
 	itractorbeam.src= "assets/TractorBeam.png";
 	istar.src	= "assets/Star.png";
-	ibeam.src	= "assets/BeamIcon.png";
-	isplitter.src	= "assets/SplitterIcon.png";
-	iheavy.src	= "assets/HeavyIcon.png";
-	igatling.src	= "assets/GatlingIcon.png";
-	imissile.src	= "assets/MissileIcon.png";
+	ibeam.src	= "assets/Beam.png";
+	isplitter.src	= "assets/Splitter.png";
+	iheavy.src	= "assets/Heavy.png";
+	igatling.src	= "assets/Gatling.png";
+	ipurifier.src	= "assets/Purifier.png";
+	imissile.src	= "assets/Missile.png";
 	iufo.src	= "assets/UFO.png";
 	iufoeye.src	= "assets/UFOEye.png";
 	iaim.src	= "assets/Target.png";
@@ -271,7 +275,7 @@ function Player(){
 	this.p = new b2Vec2(0,0);
 	this.aim = new b2Vec2(0,1);
 	this.angle = Math.atan2(this.aim.x,this.aim.y);
-	this.arsenal = [new pBeam(),new pSplitter(),new pHeavy(),new pGatling()];//,new pMissile()];
+	this.arsenal = [new pBeam(),new pSplitter(),new pHeavy(),new pGatling(),new pPurifier()];//,new pMissile()];
 	this.curwep = this.arsenal[0];
 	this.body.SetUserData(this);
 	gos.push(this);
@@ -737,12 +741,33 @@ function pGatling(){
 	this.rate.loop = true;
 	this.rate.makeready();
 	this.damage = 1;
-	this.range = 45;
+	this.range = 60;
 	this.dt = 0;
 	this.speed = 35;
 	this.pierce = 0;
 	this.rl = -1;
 	this.spawn = function(info){
+
+
+		var p = [new pGatling(),new pGatling()];//,new pGatling()];
+		for (var i = 0; i < p.length; i++){
+			var info2 = info;
+			p[i].source = info.s;
+			var t = Math.atan2(info.a.y,info.a.x);
+			t+=(Math.random()-.5)*Math.PI/180*20;
+			info2.a = new b2Vec2(Math.cos(t),Math.sin(t));
+			info2.a.Multiply(Math.random()/2+.75);
+			p[i].body = circlebody(p[i].img.width/scale/4,info2.p.x+info2.a.x,info2.p.y+info2.a.y,true);
+			info2.a.Normalize();
+			info2.a.Multiply(p[i].speed);
+			p[i].body.SetLinearVelocity(info2.a);
+			p[i].body.SetUserData(p[i]);
+			gos.push(p[i]);
+		}
+
+
+
+/*
 		//var info2 = info;
 		var p = new pGatling();
 		p.source = info.s;
@@ -754,20 +779,68 @@ function pGatling(){
 		info.a.Multiply(p.speed);
 		p.body.SetLinearVelocity(info.a);
 		p.body.SetUserData(p);
-		gos.push(p);
-		/*
-		var p2 = new Gatling();
-		p2.source = info2.s;
-		var t2 = Math.atan2(info2.a.y,info2.a.x);
-		t2+=(Math.random()-.5)*Math.PI/180*3;
-		info2.a = new b2Vec2(Math.cos(t2),Math.sin(t2));
-		//info.a.Multiply(4);
-		p2.body = circlebody(p2.img.width/scale/4,info2.p.x+info2.a.x,info2.p.y+info2.a.y,true);
-		info2.a.Multiply(p2.speed);
-		p2.body.SetLinearVelocity(info2.a);
-		p2.body.SetUserData(p2);
-		gos.push(p2);
-		*/
+		gos.push(p);*/
+	}
+	this.update = function(){
+		if (this.pierce < 0)
+			this.lastpierce();
+		this.dt+=this.body.GetLinearVelocity().Length()/60;
+		if (this.dt > this.range)
+			this.outofrange();
+	}
+	this.render = function(){
+		var b = this.body.GetPosition(),
+			v = this.body.GetLinearVelocity();
+		dynamicdraw(this.img,b.x,b.y,Math.atan2(v.y,v.x),1,1,this.img.width/2,this.img.width/2,true);
+	}
+	this.collide = function(other){
+		switch(other.categ){
+			case "play":
+				if (this.source != "p")
+					this.pierce--;
+				break;
+			case "enem":
+				if (this.source != "e")
+					this.pierce--;
+				break;
+		}
+	}
+	this.lastpierce = function(){this.dispose();}
+	this.outofrange = function(){this.dispose();}
+	this.dispose = function(){
+		gos.splice(gos.indexOf(this),1);
+		world.DestroyBody(this.body);
+	}
+}
+function pPurifier(){
+	this.categ = "proj";
+	this.img = ipurifier;
+	this.rate = new Counter(1);
+	this.rate.loop = true;
+	this.rate.makeready();
+	this.damage = 1;
+	this.range = 20;
+	this.dt = 0;
+	this.speed = 40;
+	this.pierce = 1;
+	this.rl = -1;
+	this.spawn = function(info){
+		//var info2 = info;
+		var p = [new pPurifier(),new pPurifier(),new pPurifier(),new pPurifier()];
+		for (var i = 0; i < p.length; i++){
+			var info2 = info;
+			p[i].source = info.s;
+			var t = Math.atan2(info.a.y,info.a.x);
+			t+=(Math.random()-.5)*Math.PI/180*10;
+			info2.a = new b2Vec2(Math.cos(t),Math.sin(t));
+			info2.a.Multiply(Math.random()/2+.75);
+			p[i].body = circlebody(p[i].img.width/scale/4,info2.p.x+info2.a.x,info2.p.y+info2.a.y,true);
+			info2.a.Normalize();
+			info2.a.Multiply(p[i].speed);
+			p[i].body.SetLinearVelocity(info2.a);
+			p[i].body.SetUserData(p[i]);
+			gos.push(p[i]);
+		}
 	}
 	this.update = function(){
 		if (this.pierce < 0)
