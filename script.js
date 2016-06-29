@@ -629,7 +629,7 @@ function pSplitter(){
 		this.rate = new Counter(15);
 		this.rate.loop = true;
 		this.rate.makeready();
-		this.damage = 1;
+		this.damage = 4;
 		this.range = 100/.7;
 		this.dt = 0;
 		this.speed = 50;
