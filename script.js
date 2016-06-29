@@ -28,9 +28,6 @@ var alphabet = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p",
 var version = "0.7.4.5";
 
 function init(){
-  //window.onwheel = preventDefault; // modern standard
-  //window.onmousewheel = document.onmousewheel = preventDefault; // older browsers, IE
-  //window.ontouchmove  = preventDefault; // mobile
 	document.getElementById("version").innerHTML = version+"<br>";
 	devtools = new setdevtools();
 
@@ -45,8 +42,6 @@ function init(){
 
 	var om = Number(localStorage.getItem("omega"));
 	omega = om > 0;
-	//alert(omega+" "+omegaunlock);
-	//if (omega == null){ omega = false; alert("und");}
 
 	gos = [];
 	counters = [];
@@ -511,7 +506,6 @@ function Counter(len){
 	}
 	this.dispose = function(){
 		counters.splice(counters.indexOf(this),1);
-		//alert(counters.length);
 	}
 }
 function pBeam(){
@@ -543,19 +537,10 @@ function pBeam(){
 			for (var i = 0; i < p.length; i++){
 				var info2 = {p:info.p,a:info.a,s:info.s};
 				p[i].source = info2.s;
-				//var t0 = Math.atan2(info.a.y,info.a.x);
-				//alert(t0*180/Math.PI);
-				//var t=(i-p.length/2)*Math.PI/4;//+Math.atan2(info2.a.y,info2.a.x);
-				//t+=(i-p.length/3)*Math.PI/45;//(i-.5*p.length)/p.length*Math.PI/16;
-					//(Math.random()-.5)*Math.PI/180*20;
-				//alert(i+" "+(i-p.length/2)+" "+t*180/Math.PI+" "+t0*180/Math.PI);
-				//alert("T"+t*180/Math.PI);
 				var t = Math.atan2(info2.a.y,info2.a.x);
 				t+=(i-p.length/2)*Math.PI/4/p.length;
 				info2.a = new b2Vec2(Math.cos(t),Math.sin(t));
-				//info2.a.Multiply(Math.random()/2+.75);
 				p[i].body = circlebody(p[i].img.width/scale/4,info2.p.x+info2.a.x,info2.p.y+info2.a.y,true);
-				//info2.a.Normalize();
 				info2.a.Multiply(p[i].speed);
 				p[i].body.SetLinearVelocity(info2.a);
 				p[i].body.SetUserData(p[i]);
@@ -616,7 +601,7 @@ function pSplitter(){
 	this.rate.loop = true;
 	this.rate.makeready();
 	this.damage = 2;
-	this.range = 85/.7;
+	this.range = 85;
 	this.dt = 0;
 	this.speed = 35;
 	this.maxbranches = 3;
@@ -630,7 +615,7 @@ function pSplitter(){
 		this.rate.loop = true;
 		this.rate.makeready();
 		this.damage = 4;
-		this.range = 100/.7;
+		this.range = 100;
 		this.dt = 0;
 		this.speed = 50;
 		this.maxbranches = 5;
@@ -640,7 +625,6 @@ function pSplitter(){
 	}
 	this.spawn = function(info){
 		var p = new pSplitter();
-		//p.range = this.range*.7;
 		p.source = info.s;
 		p.branches = this.branches-1;
 		if (p.branches == this.maxbranches)	fxbeam.play();
@@ -669,22 +653,18 @@ function pSplitter(){
 		dynamicdraw(this.img,b.x,b.y,Math.atan2(v.y,v.x),scl,scl,this.img.width/2,this.img.width/2,true);
 	}
 	this.burst = function(count){
-		var rng = this.range/.7;
 		if (this.branches > 0){
 			fxspark.play();
 			for (var i = 0; i < count; i++){
 				var t = ((Math.random()-.5)+i)*2*Math.PI/count;
 				this.spawn({p : this.body.GetPosition(), a : new b2Vec2(Math.cos(t),Math.sin(t)), s : this.source});
-				//this.spawn({p: this.body.GetPosition(), a:new b2Vec2(Math.cos(Math.PI*2/count*i),Math.sin(Math.PI*2/count*i)), s:this.source});
 			}
 			if (!omega)
 			this.range*=.6;
 			for (var i = 0; i < count; i++){
 				var t = ((Math.random()-.5)+i)*2*Math.PI/count;
 				this.spawn({p : this.body.GetPosition(), a : new b2Vec2(Math.cos(t),Math.sin(t)), s : this.source});
-				//this.spawn({p: this.body.GetPosition(), a:new b2Vec2(Math.cos(Math.PI*2/count*i),Math.sin(Math.PI*2/count*i)), s:this.source});
 			}
-			this.range = rng*.7;
 		}
 		this.nburst = 0;
 	}
@@ -879,11 +859,9 @@ function pIncinerator(){
 	this.pierce = 1;
 	this.rl = -1;
 	if (omega){
-		//alert("omega");
 		this.rate.dispose();
 		this.rate = new Counter(40);
 		this.rate.loop = true;
-		//this.rate.len = 40;
 		this.rate.makeready();
 		this.range = 60;
 		this.damage = 5;
@@ -891,7 +869,6 @@ function pIncinerator(){
 		this.speed = 65;
 		this.pierce = 7;
 	}
-	//alert("len "+this.rate.len);
 	this.spawn = function(info){
 		fxfire.play();
 		if (omega){
@@ -900,8 +877,7 @@ function pIncinerator(){
 				var p = new pIncinerator();
 				var info2 = info;
 				p.source = info2.s;
-				var t = i;
-				t+=(Math.random()-.5)*Math.PI/90;
+				var t = i+(Math.random()-.5)*Math.PI/90;
 				info2.a = new b2Vec2(Math.cos(t),Math.sin(t));
 				info2.a.Multiply(Math.random()/2+2.75+j*1.5);
 				p.body = circlebody(p.img.width/scale*4,info2.p.x+info2.a.x,info2.p.y+info2.a.y,true);
@@ -930,7 +906,6 @@ function pIncinerator(){
 		}
 	}
 	this.update = function(){
-		//if (omega) fxfire.play();
 		if (this.pierce < 0)
 			this.lastpierce();
 		this.dt+=this.body.GetLinearVelocity().Length()/60;
@@ -961,11 +936,6 @@ function pIncinerator(){
 		world.DestroyBody(this.body);
 		this.rate.dispose();
 	}
-}function preventDefault(e) {
-  e = e || window.event;
-  if (e.preventDefault)
-      e.preventDefault();
-  e.returnValue = false;  
 }
 function Star(){
 	this.rl = -2;
@@ -979,8 +949,7 @@ function Star(){
 		this.keeponscreen();
 	}
 	this.render = function(){
-		ctx.drawImage(istar,this.p.x*scale,this.p.y*scale);//,this.scale*.75*istar.width,this.scale*.75*istar.height);
-		//dynamicdraw(istar,this.p.x,this.p.y,0,this.scale*.75,this.scale*.75);
+		ctx.drawImage(istar,this.p.x*scale,this.p.y*scale,this.scale*.75*istar.width,this.scale*.75*istar.height);
 	}
 	this.keeponscreen = function(){
 		var b = player.body.GetPosition(),
