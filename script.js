@@ -720,7 +720,7 @@ function pHeavy(){
 		this.range = 150/.7;
 		this.dt = 0;
 		this.speed = 45;
-		this.pierce = 8;
+		this.pierce = 15;
 	}
 	this.spawn = function(info){
 		var p = new pHeavy();
