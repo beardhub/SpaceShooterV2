@@ -23,7 +23,9 @@ var scale = 32;
 var viewscale = 1, viewslot;
 var devtools;
 var spawner;
-var version = "0.7.2";
+var omega = false, omegaunlock = "";
+var alphabet = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"];
+var version = "0.7.4";
 
 function init(){
 	document.getElementById("version").innerHTML = version+"<br>";
@@ -75,6 +77,9 @@ function init(){
 	document.getElementById("canvas").addEventListener('drag',mousemove);
 
 	document.addEventListener('keydown', function(event) {
+		omegaunlock+=alphabet[event.keyCode-65];
+		if ("kayle".indexOf(omegaunlock)!=0)omegaunlock = "";
+		if (omegaunlock == "kayle") toggleomega();
 		switch(event.keyCode){
 			case 49:case 50:case 51:case 52:case 53:
 			player.switchwep(event.keyCode-48);break;
@@ -102,6 +107,13 @@ function init(){
 function setdevtools(){
 	this.b2debug = false;
 	this.imgbox = false;
+}
+function toggleomega(){
+	if (!omega){ alert("Omega weapons activated. Re-enter code to deactivate.");alert("Beware of lag.");}
+	else alert("Omega weapons deactivated.");
+	omega = !omega;
+	player.arsenal = [new pBeam(),new pSplitter(),new pHeavy(),new pGatling(),new pIncinerator()];
+	player.switchwep(Number(localStorage.getItem("playerweapon")));
 }
 function zoom(dir){
 	var sets = [.25,.35,.5,.75,1,1.25,1.75,2.25,3,3.5,4.5];
@@ -483,6 +495,10 @@ function Counter(len){
 		if (!this.loop)
 			this.running = false;
 	}
+	this.dispose = function(){
+		counters.splice(counters.indexOf(this),1);
+		//alert(counters.length);
+	}
 }
 function pBeam(){
 	this.categ = "proj";
@@ -496,16 +512,55 @@ function pBeam(){
 	this.speed = 35;
 	this.pierce = 2;
 	this.rl = -1;
+	if (omega){
+		this.rate = new Counter(10);
+		this.rate.loop = true;
+		this.rate.makeready();
+		this.damage = 10;
+		this.range = 150;
+		this.dt = 0;
+		this.speed = 50;
+		this.pierce = 5;
+	}
 	this.spawn = function(info){
-		var p = new pBeam();
-		p.source = info.s;
-		info.a.Normalize();
-		p.body = circlebody(p.img.width/scale/4,info.p.x+info.a.x,info.p.y+info.a.y,true);
-		info.a.Multiply(p.speed);
-		p.body.SetLinearVelocity(info.a);
-		p.body.SetUserData(p);
-		fxbeam.play();
-		gos.push(p);
+		if (omega){
+			var p = [new pBeam(),new pBeam(),new pBeam(),new pBeam(),new pBeam(),new pBeam(),new pBeam(),new pBeam(),new pBeam(),new pBeam(),
+				new pBeam(),new pBeam(),new pBeam(),new pBeam(),new pBeam(),new pBeam(),new pBeam(),new pBeam(),new pBeam()];
+			for (var i = 0; i < p.length; i++){
+				var info2 = {p:info.p,a:info.a,s:info.s};
+				p[i].source = info2.s;
+				//var t0 = Math.atan2(info.a.y,info.a.x);
+				//alert(t0*180/Math.PI);
+				//var t=(i-p.length/2)*Math.PI/4;//+Math.atan2(info2.a.y,info2.a.x);
+				//t+=(i-p.length/3)*Math.PI/45;//(i-.5*p.length)/p.length*Math.PI/16;
+					//(Math.random()-.5)*Math.PI/180*20;
+				//alert(i+" "+(i-p.length/2)+" "+t*180/Math.PI+" "+t0*180/Math.PI);
+				//alert("T"+t*180/Math.PI);
+				var t = Math.atan2(info2.a.y,info2.a.x);
+				t+=(i-p.length/2)*Math.PI/4/p.length;
+				info2.a = new b2Vec2(Math.cos(t),Math.sin(t));
+				//info2.a.Multiply(Math.random()/2+.75);
+				p[i].body = circlebody(p[i].img.width/scale/4,info2.p.x+info2.a.x,info2.p.y+info2.a.y,true);
+				//info2.a.Normalize();
+				info2.a.Multiply(p[i].speed);
+				p[i].body.SetLinearVelocity(info2.a);
+				p[i].body.SetUserData(p[i]);
+				gos.push(p[i]);
+				t = 0;t0=0;
+			}
+			fxbeam.play();
+		}
+		else{
+			var p = new pBeam();
+			p.source = info.s;
+			info.a.Normalize();
+			p.body = circlebody(p.img.width/scale/4,info.p.x+info.a.x,info.p.y+info.a.y,true);
+			info.a.Multiply(p.speed);
+			p.body.SetLinearVelocity(info.a);
+			p.body.SetUserData(p);
+			fxbeam.play();
+			gos.push(p);
+		}
 	}
 	this.update = function(){
 		if (this.pierce < 0)
@@ -537,6 +592,7 @@ function pBeam(){
 	this.dispose = function(){
 		gos.splice(gos.indexOf(this),1);
 		world.DestroyBody(this.body);
+		this.rate.dispose();
 	}
 }
 function pSplitter(){
@@ -551,13 +607,26 @@ function pSplitter(){
 	this.speed = 35;
 	this.maxbranches = 3;
 	this.branches = this.maxbranches+1;
+	this.children = 12;
 	this.nburst = 0;
 	this.pierce = 0;
 	this.rl = -1;
+	if (omega){
+		this.rate = new Counter(15);
+		this.rate.loop = true;
+		this.rate.makeready();
+		this.damage = 7;
+		this.range = 100/.7;
+		this.dt = 0;
+		this.speed = 50;
+		this.maxbranches = 5;
+		this.branches = this.maxbranches+1;
+		this.children = 30;
+		this.pierce = 3;
+	}
 	this.spawn = function(info){
 		var p = new pSplitter();
-		p.range = this.range*.7;
-		p.img = isplitter;
+		//p.range = this.range*.7;
 		p.source = info.s;
 		p.branches = this.branches-1;
 		if (p.branches == this.maxbranches)	fxbeam.play();
@@ -594,6 +663,7 @@ function pSplitter(){
 				this.spawn({p : this.body.GetPosition(), a : new b2Vec2(Math.cos(t),Math.sin(t)), s : this.source});
 				//this.spawn({p: this.body.GetPosition(), a:new b2Vec2(Math.cos(Math.PI*2/count*i),Math.sin(Math.PI*2/count*i)), s:this.source});
 			}
+			if (!omega)
 			this.range*=.6;
 			for (var i = 0; i < count; i++){
 				var t = ((Math.random()-.5)+i)*2*Math.PI/count;
@@ -619,8 +689,8 @@ function pSplitter(){
 		if (hit){
 			this.pierce--;
 			if (this.pierce < 0)
-				this.nburst = 12;
-			else 	this.nburst = 4;
+				this.nburst = this.children;
+			else 	this.nburst = this.children/3;
 		}
 	}
 	this.lastpierce = function(){this.dispose();}
@@ -628,6 +698,7 @@ function pSplitter(){
 	this.dispose = function(){
 		gos.splice(gos.indexOf(this),1);
 		world.DestroyBody(this.body);
+		this.rate.dispose();
 	}
 }
 function pHeavy(){
@@ -642,15 +713,32 @@ function pHeavy(){
 	this.speed = 20;
 	this.pierce = 3;
 	this.rl = -1;
+	if (omega){
+		this.rate = new Counter(45);
+		this.rate.loop = true;
+		this.rate.makeready();
+		this.range = 150/.7;
+		this.dt = 0;
+		this.speed = 45;
+		this.pierce = 8;
+	}
 	this.spawn = function(info){
 		var p = new pHeavy();
 		p.source = info.s;
 		info.a.Normalize();
 		info.a.Multiply(4);
-		p.body = circlebody(p.img.width/scale/1.25,info.p.x+info.a.x,info.p.y+info.a.y,true);
-		info.a.Multiply(p.speed/4);
-		p.body.SetLinearVelocity(info.a);
-		p.body.SetUserData(p);
+		if (omega){
+			p.body = circlebody(p.img.width/scale*8,info.p.x+info.a.x,info.p.y+info.a.y,true);
+			info.a.Multiply(p.speed/4);
+			p.body.SetLinearVelocity(info.a);
+			p.body.SetUserData(p);
+		}
+		else {
+			p.body = circlebody(p.img.width/scale/1.25,info.p.x+info.a.x,info.p.y+info.a.y,true);
+			info.a.Multiply(p.speed/4);
+			p.body.SetLinearVelocity(info.a);
+			p.body.SetUserData(p);
+		}
 		fxheavy.play();
 		gos.push(p);
 	}
@@ -664,7 +752,9 @@ function pHeavy(){
 	this.render = function(){
 		var b = this.body.GetPosition(),
 			v = this.body.GetLinearVelocity();
-		dynamicdraw(this.img,b.x,b.y,Math.atan2(v.y,v.x),1.5,1.5,this.img.width/2,this.img.width/2,true);
+		if (omega)
+			dynamicdraw(this.img,b.x,b.y,Math.atan2(v.y,v.x),7,7,this.img.width/2,this.img.width/2,true);
+		else dynamicdraw(this.img,b.x,b.y,Math.atan2(v.y,v.x),1.5,1.5,this.img.width/2,this.img.width/2,true);
 	}
 	this.collide = function(other){
 		switch(other.categ){
@@ -683,6 +773,7 @@ function pHeavy(){
 	this.dispose = function(){
 		gos.splice(gos.indexOf(this),1);
 		world.DestroyBody(this.body);
+		this.rate.dispose();
 	}
 }
 function pGatling(){
@@ -697,15 +788,29 @@ function pGatling(){
 	this.speed = 35;
 	this.pierce = 0;
 	this.rl = -1;
+	if (omega){
+		this.rate = new Counter(1);
+		this.rate.loop = true;
+		this.rate.makeready();
+		this.range = 100;
+		this.damage = 5;
+		this.dt = 0;
+		this.speed = 55;
+		this.pierce = 5;
+	}
 	this.spawn = function(info){
 		fxgatling.play();
 		var p = [new pGatling(),new pGatling()];
+		if (omega) p = [new pGatling(),new pGatling(),new pGatling(),new pGatling(),new pGatling(),new pGatling(),
+			new pGatling(),new pGatling(),new pGatling(),new pGatling()];
 		for (var i = 0; i < p.length; i++){
 			var info2 = info;
 			p[i].source = info.s;
 			var t = Math.atan2(info.a.y,info.a.x);
 			t+=(Math.random()-.5)*Math.PI/180*20;
 			info2.a = new b2Vec2(Math.cos(t),Math.sin(t));
+			info2.a.Multiply(Math.random()/2+.75);
+			if (omega)
 			info2.a.Multiply(Math.random()/2+.75);
 			p[i].body = circlebody(p[i].img.width/scale/4,info2.p.x+info2.a.x,info2.p.y+info2.a.y,true);
 			info2.a.Normalize();
@@ -744,6 +849,7 @@ function pGatling(){
 	this.dispose = function(){
 		gos.splice(gos.indexOf(this),1);
 		world.DestroyBody(this.body);
+		this.rate.dispose();
 	}
 }
 function pIncinerator(){
@@ -758,8 +864,41 @@ function pIncinerator(){
 	this.speed = 40;
 	this.pierce = 1;
 	this.rl = -1;
+	if (omega){
+		//alert("omega");
+		this.rate.dispose();
+		this.rate = new Counter(40);
+		this.rate.loop = true;
+		//this.rate.len = 40;
+		this.rate.makeready();
+		this.range = 60;
+		this.damage = 5;
+		this.dt = 0;
+		this.speed = 65;
+		this.pierce = 7;
+	}
+	//alert("len "+this.rate.len);
 	this.spawn = function(info){
 		fxfire.play();
+		if (omega){
+			for (var j = 0; j < 2; j++)
+			for (var i = 0; i < Math.PI*2; i+=Math.PI/90){
+				var p = new pIncinerator();
+				var info2 = info;
+				p.source = info2.s;
+				var t = i;
+				t+=(Math.random()-.5)*Math.PI/90;
+				info2.a = new b2Vec2(Math.cos(t),Math.sin(t));
+				info2.a.Multiply(Math.random()/2+2.75+j*1.5);
+				p.body = circlebody(p.img.width/scale*4,info2.p.x+info2.a.x,info2.p.y+info2.a.y,true);
+				info2.a.Normalize();
+				info2.a.Multiply(p.speed);
+				p.body.SetLinearVelocity(info2.a);
+				p.body.SetUserData(p);
+				gos.push(p);
+			}
+			return;
+		}
 		var p = [new pIncinerator(),new pIncinerator(),new pIncinerator(),new pIncinerator()];
 		for (var i = 0; i < p.length; i++){
 			var info2 = info;
@@ -777,6 +916,7 @@ function pIncinerator(){
 		}
 	}
 	this.update = function(){
+		//if (omega) fxfire.play();
 		if (this.pierce < 0)
 			this.lastpierce();
 		this.dt+=this.body.GetLinearVelocity().Length()/60;
@@ -805,6 +945,7 @@ function pIncinerator(){
 	this.dispose = function(){
 		gos.splice(gos.indexOf(this),1);
 		world.DestroyBody(this.body);
+		this.rate.dispose();
 	}
 }
 function Star(){
