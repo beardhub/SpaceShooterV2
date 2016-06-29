@@ -10,7 +10,7 @@ var b2Vec2 = Box2D.Common.Math.b2Vec2,
 	b2DebugDraw = Box2D.Dynamics.b2DebugDraw,
 	b2ContactListener = Box2D.Dynamics.b2ContactListener;
 
-var ishipbase, iturret, itractorbeam, istar, ibeam, isplitter, iheavy, igatling, imissile, iufo, iufoeye, iaim;
+var ishipbase, iturret, itractorbeam, istar, ibeam, isplitter, iheavy, igatling, imissile, iufo, iufoeye, iaim, ihealthbar;
 var gos, counters;
 var c, ctx;
 var mouse;
@@ -40,8 +40,12 @@ function init(){
 	counters = [];
 	player = new Player();
 	spawner = new Spawner();
-	
-	spawner.ufo.spawn(new b2Vec2(5,5));
+	for (var i = 0; i < 25; i++)
+	spawner.spawnonscreen("ufo");
+
+		//spawner.spawn("ufo");
+	//spawner.spawnat("ufo",-76,52);
+	//spawner.ufo.spawn(new b2Vec2(5,5));
 
 	resizewin();
 
@@ -70,25 +74,11 @@ function init(){
 	}
 	document.getElementById("canvas").addEventListener('mousemove',mousemove);
 	document.getElementById("canvas").addEventListener('drag',mousemove);
-	/*
-	document.getElementById("canvas").addEventListener('mousemove',function(evt){
-		var rect = c.getBoundingClientRect();
-		mouse.x = evt.clientX - rect.left;
-		mouse.y = evt.clientY - rect.top;
-	});
-	document.getElementById("canvas").addEventListener('drag',function(evt){
-		var rect = c.getBoundingClientRect();
-		mouse.x = evt.clientX - rect.left;
-		mouse.y = evt.clientY - rect.top;
-	});
-	*/
+
 	document.addEventListener('keydown', function(event) {
 		switch(event.keyCode){
-			case 49:	player.switchwep(1);	break;
-			case 50:	player.switchwep(2);	break;
-			case 51:	player.switchwep(3);	break;
-			case 52:	player.switchwep(4);	break;
-			case 53:	player.switchwep(5);	break;
+			case 49:case 50:case 51:case 52:case 53:
+			player.switchwep(event.keyCode-48);break;
 			case 87:	player.m.w = true;	break;
 			case 65:	player.m.a = true;	break;
 			case 83:	player.m.s = true;	break;
@@ -117,7 +107,7 @@ function zoom(dir){
 	if (viewslot+dir >= 0 && viewslot+dir <= 10){
 		viewslot+=dir;
 		viewscale = sets[viewslot];
-		document.getElementById("zoom").innerHTML = viewscale+"x";
+		document.getElementById("zoom").innerHTML = "Zoom: "+viewscale+"x";
 		dostars();
 		localStorage.setItem("viewslot",""+viewslot);
 	}
@@ -141,7 +131,7 @@ function activatedebug(){
 	world.SetDebugDraw(debugDraw);
 }
 function gameloop(){
-	//document.getElementById("zoom").innerHTML = new Date().getTime()-temp+" "+stars.length;
+	//document.getElementById("zoom").innerHTML = gos.length;//new Date().getTime()-temp+" "+stars.length;
 	//temp = new Date().getTime();
 	update();
 	render();
@@ -213,6 +203,8 @@ function loadGraphics(){
 	imissile	= new Image();
 	iufo		= new Image();
 	iufoeye		= new Image();
+	iaim		= new Image();
+	ihealthbar	= new Image();
 
 	ishipbase.src	= "assets/ShipBase.png";
 	iturret.src	= "assets/Turret.png";
@@ -225,6 +217,8 @@ function loadGraphics(){
 	imissile.src	= "assets/MissileIcon.png";
 	iufo.src	= "assets/UFO.png";
 	iufoeye.src	= "assets/UFOEye.png";
+	iaim.src	= "assets/Target.png";
+	ihealthbar.src	= "assets/HealthBar.png";
 }
 function squarebody(size,x,y,sensor){
 	var fixDef = new b2FixtureDef;
@@ -257,8 +251,8 @@ function MakeContactListener(){
 		var a = contact.GetFixtureA().GetBody().GetUserData();
 		var b = contact.GetFixtureB().GetBody().GetUserData();
 		//alert(a.categ+" "+b.categ);
-		//a.collide(b);
-		//b.collide(a);
+		a.collide(b);
+		b.collide(a);
 	}
 	list.EndContact = function(contact) {}
 	list.PostSolve = function(contact, impulse) {}
@@ -267,6 +261,8 @@ function MakeContactListener(){
 }
 function Player(){
 	this.categ = "play";
+	this.maxhealth = 100;
+	this.health = this.maxhealth;
 	this.body = squarebody(1,0,0,true);
 	this.rl = 0;
 	this.speed = 20;
@@ -295,7 +291,15 @@ function Player(){
 		return {p : this.p, a : this.aim, s : "p"};
 	}
 	this.collide = function(other){
-
+		switch(other.categ){
+			case "proj":
+				if (other.source != "p")
+					this.health-=other.damage;
+				break;
+			case "enem":
+				//body damage?
+				break;
+		}
 	}
 	this.update = function(){
 		if (this.tryshoot&&this.curwep.rate.ready)
@@ -330,6 +334,8 @@ function Player(){
 		if (this.m.d)	dynamicdraw(itractorbeam,this.p.x,this.p.y,Math.PI/-2,1,1);
 		//*/
 
+		if (this.health>0)
+			dynamicdraw(ihealthbar,this.p.x,this.p.y+1.4,Math.PI/2,this.health/this.maxhealth,1);
 		//dynamicdraw(itractorbeam,this.p.x,this.p.y,Math.atan2(this.body.GetLinearVelocity().y,this.body.GetLinearVelocity().x)-Math.PI/2,1,1);
 	}
 }
@@ -345,29 +351,78 @@ function Enemy(){
 	//this.curwep = this.arsenal[0];
 	//this.body.SetUserData(this);
 	//gos.push(this);
+	this.collide = function(other){
+		switch(other.categ){
+			case "proj":
+				if (other.source != "e")
+					this.health-=other.damage;
+				break;
+			case "play":
+				//body damage?
+				break;
+		}
+	}
 	this.update = function(){}
 	this.render = function(){}
-	this.die = function(){}
+	this.die = function(){
+		spawner.spawn(this.clss);
+		this.dispose();
+	}
+	this.dispose = function(){
+		gos.splice(gos.indexOf(this),1);
+		world.DestroyBody(this.body);
+	}
 }
 function Spawner(){
 	this.ufo = new UFO();
+	this.spawnat = function(clss,x,y){
+		switch(clss){
+			case "ufo":
+				this.ufo.spawn(new b2Vec2(x,y));
+				break;
+		}
+	}
+	this.spawn = function(clss){
+		var x, y;
+		do{
+			x = (Math.random()-.5)*80*2;
+			y = (Math.random()-.5)*55*2;
+		}while(Math.abs(x)<76&&Math.abs(y)<52);
+		x+=player.p.x;
+		y+=player.p.y;
+		switch(clss){
+			case "ufo":
+				this.ufo.spawn(new b2Vec2(x,y));
+				break;
+		}
+	}
+	this.spawnonscreen = function(clss){
+		var x, y;
+		x = (Math.random()-.5)*76*2;
+		y = (Math.random()-.5)*52*2;
+		x+=player.p.x;
+		y+=player.p.y;
+		this.ufo.spawn(new b2Vec2(x,y));
+	}
 }
 function UFO(){
 	this.speed = 7;
-	this.health = 10;
+	this.maxhealth = 10;
 	this.arsenal = [new pBeam()];
 	this.curwep = this.arsenal[0];
 	this.spawn = function(pos){
 		var e = new Enemy();
+		e.clss = "ufo";
+		e.maxhealth = this.maxhealth;
+		e.health = this.maxhealth;
 		e.speed = this.speed;
-		e.health = this.health;
 		e.p = pos;
 		e.aim = new b2Vec2(0,1);
 		e.angle = Math.atan2(e.aim.y,e.aim.x);
 		e.arsenal = this.arsenal;
 		e.curwep = this.curwep;
 		e.update = function(){
-			if (this.health < 0)
+			if (this.health <= 0 || Math.abs(this.p.x-player.p.x)>80 || Math.abs(this.p.y-player.p.y)>55)
 				this.die();
 			this.p = this.body.GetPosition();
 			this.aim = new b2Vec2(player.p.x-this.p.x,player.p.y-this.p.y);
@@ -376,6 +431,8 @@ function UFO(){
 		e.render = function(){
 			dynamicdraw(iufo,this.p.x,this.p.y,0,1,1);
 			dynamicdraw(iufoeye,this.p.x,this.p.y,this.angle,1,1);
+			if (this.health>0)
+				dynamicdraw(ihealthbar,this.p.x,this.p.y+1.4,Math.PI/2,this.health/this.maxhealth,1);
 		}
 		e.body = circlebody(1,e.p.x,e.p.y);
 		e.body.SetUserData(e);
@@ -450,9 +507,19 @@ function Projectile(){
 			v = this.body.GetLinearVelocity();
 		dynamicdraw(this.img,b.x,b.y,Math.atan2(v.y,v.x),.5,.5,this.img.width/2,this.img.width/2,true);
 	}
-	this.collide = function(other){
-		
+	this.defaultcollide = function(other){
+		switch(other.categ){
+			case "play":
+				if (this.source != "p")
+					this.pierce--;
+				break;
+			case "enem":
+				if (this.source != "e")
+					this.pierce--;
+				break;
+		}
 	}
+	this.collide = function(other){this.defaultcollide(other);}
 	this.lastpierce = function(){this.dispose();}
 	this.outofrange = function(){this.dispose();}
 	this.dispose = function(){
@@ -461,17 +528,20 @@ function Projectile(){
 	}
 }
 function pBeam(){
-	this.rate = new Counter(25);
+	this.categ = "proj";
+	this.img = ibeam;
+	this.rate = new Counter(20);
 	this.rate.loop = true;
 	this.rate.makeready();
+	this.damage = 8;
+	this.range = 70;
+	this.dt = 0;
+	this.speed = 35;
+	this.pierce = 2;
+	this.rl = -1;
 	this.spawn = function(info){
-		var p = new Projectile();
-		p.img = ibeam;
+		var p = new pBeam();
 		p.source = info.s;
-		p.damage = 3;
-		p.range = 35;
-		p.speed = 25;
-		p.pierce = 1;
 		info.a.Normalize();
 		p.body = circlebody(p.img.width/scale/4,info.p.x+info.a.x,info.p.y+info.a.y,true);
 		info.a.Multiply(p.speed);
@@ -479,8 +549,139 @@ function pBeam(){
 		p.body.SetUserData(p);
 		gos.push(p);
 	}
+	this.update = function(){
+		if (this.pierce < 0)
+			this.lastpierce();
+		this.dt+=this.body.GetLinearVelocity().Length()/60;
+		if (this.dt > this.range)
+			this.outofrange();
+		
+	}
+	this.render = function(){
+		var b = this.body.GetPosition(),
+			v = this.body.GetLinearVelocity();
+		dynamicdraw(this.img,b.x,b.y,Math.atan2(v.y,v.x),.5,.5,this.img.width/2,this.img.width/2,true);
+	}
+	this.collide = function(other){
+		switch(other.categ){
+			case "play":
+				if (this.source != "p")
+					this.pierce--;
+				break;
+			case "enem":
+				if (this.source != "e")
+					this.pierce--;
+				break;
+		}
+	}
+	this.lastpierce = function(){this.dispose();}
+	this.outofrange = function(){this.dispose();}
+	this.dispose = function(){
+		gos.splice(gos.indexOf(this),1);
+		world.DestroyBody(this.body);
+	}
 }
 function pSplitter(){
+	this.categ = "proj";
+	this.img = isplitter;
+	this.rate = new Counter(35);
+	this.rate.loop = true;
+	this.rate.makeready();
+	this.damage = 2;
+	this.range = 85/.7;
+	this.dt = 0;
+	this.speed = 35;
+	this.maxbranches = 3;
+	this.branches = this.maxbranches+1;
+	this.nburst = 0;
+	this.pierce = 0;
+	this.rl = -1;
+	this.spawn = function(info){
+		var p = new pSplitter();
+		p.range = this.range*.7;
+		p.img = isplitter;
+		p.source = info.s;
+		p.branches = this.branches-1;
+		info.a.Normalize();
+		p.body = circlebody(p.img.width/scale/4,info.p.x+info.a.x*3,info.p.y+info.a.y*3,true);
+		info.a.Multiply(p.speed);
+		p.body.SetLinearVelocity(info.a);
+		p.body.SetUserData(p);
+		gos.push(p);
+	}
+	this.update = function(){
+		if (this.nburst > 0)
+			this.burst(this.nburst);
+		if (this.pierce < 0)
+			this.lastpierce();
+		this.dt+=this.body.GetLinearVelocity().Length()/60;
+		if (this.dt > this.range)
+			this.outofrange();
+		
+	}
+	this.render = function(){
+		var b = this.body.GetPosition(),
+			v = this.body.GetLinearVelocity();
+		var scl = .5;
+		if (this.branches==this.maxbranches) scl = 1;
+		dynamicdraw(this.img,b.x,b.y,Math.atan2(v.y,v.x),scl,scl,this.img.width/2,this.img.width/2,true);
+	}
+	this.burst = function(count){
+		var rng = this.range/.7;
+		if (this.branches > 0){
+			for (var i = 0; i < count; i++){
+				var t = ((Math.random()-.5)+i)*2*Math.PI/count;
+				this.spawn({p : this.body.GetPosition(), a : new b2Vec2(Math.cos(t),Math.sin(t)), s : this.source});
+				//this.spawn({p: this.body.GetPosition(), a:new b2Vec2(Math.cos(Math.PI*2/count*i),Math.sin(Math.PI*2/count*i)), s:this.source});
+			}
+			this.range*=.6;
+			for (var i = 0; i < count; i++){
+				var t = ((Math.random()-.5)+i)*2*Math.PI/count;
+				this.spawn({p : this.body.GetPosition(), a : new b2Vec2(Math.cos(t),Math.sin(t)), s : this.source});
+				//this.spawn({p: this.body.GetPosition(), a:new b2Vec2(Math.cos(Math.PI*2/count*i),Math.sin(Math.PI*2/count*i)), s:this.source});
+			}/*
+			this.range*=.5;
+			for (var i = 0; i < count; i++){
+				var t = ((Math.random()-.5)+i)*2*Math.PI/count;
+				this.spawn({p : this.body.GetPosition(), a : new b2Vec2(Math.cos(t),Math.sin(t)), s : this.source});
+				this.spawn({p: this.body.GetPosition(), a:new b2Vec2(Math.cos(Math.PI*2/count*i),Math.sin(Math.PI*2/count*i)), s:this.source});
+			}*/
+			this.range = rng*.7;
+		}
+		this.nburst = 0;
+	}
+	this.collide = function(other){
+		var hit = false;
+		switch(other.categ){
+			case "play":
+				if (this.source != "p")
+					hit = true;
+				break;
+			case "enem":
+				if (this.source != "e")
+					hit = true;
+				break;
+		}
+		if (hit){
+			this.pierce--;
+			if (this.pierce < 0)
+				this.nburst = 12;
+			else 	this.nburst = 4;
+		}
+	}
+	this.lastpierce = function(){this.dispose();}
+	this.outofrange = function(){this.dispose();}
+	this.dispose = function(){
+		gos.splice(gos.indexOf(this),1);
+		world.DestroyBody(this.body);
+	}
+
+
+
+
+
+
+/*
 	this.rate = new Counter(35);
 	this.rate.loop = true;
 	this.rate.makeready();
@@ -490,8 +691,15 @@ function pSplitter(){
 		p.source = info.s;
 		p.damage = 2;
 		p.range = 45;
-		p.speed = 25;
+		p.speed = 35;
 		p.pierce = 0;
+		p.burst = function(){
+			
+		}
+		p.collide = function(other){
+			this.defaultcollide(other);
+			this.burst();
+		}
 		info.a.Normalize();
 		p.body = circlebody(p.img.width/scale/4,info.p.x+info.a.x,info.p.y+info.a.y,true);
 		info.a.Multiply(p.speed);
@@ -499,6 +707,7 @@ function pSplitter(){
 		p.body.SetUserData(p);
 		gos.push(p);
 	}
+*/
 }
 function Star(){
 	this.rl = -2;
