@@ -46,8 +46,8 @@ function init(){
 	resizewin();
 
 	window.onresize = function(){resizewin();}
-	window.onmousedown = function(){player.tryshoot = true;}
-	window.onmouseup = function(){player.tryshoot = false;}
+	window.onmousedown = function(){player.lclick = true;}
+	window.onmouseup = function(){player.lclick = false;}
 
 	document.getElementById("info").innerHTML+="<div id=\"zoom\">1x</div>";
 
@@ -80,7 +80,7 @@ function init(){
 			case 65:	player.m.a = true;	break;
 			case 83:	player.m.s = true;	break;
 			case 68:	player.m.d = true;	break;
-			case 32:	player.tryshoot=true;	break;
+			case 32:	player.space=true;	break;
 			case 187:	zoom(1);		break;
 			case 189:	zoom(-1);		break;
 		}
@@ -91,7 +91,7 @@ function init(){
 			case 65:	player.m.a = false;	break;
 			case 83:	player.m.s = false;	break;
 			case 68:	player.m.d = false;	break;
-			case 32:	player.tryshoot=false;	break;
+			case 32:	player.space=false;	break;
 		}
 	});
 
@@ -311,6 +311,7 @@ function Player(){
 		}
 	}
 	this.update = function(){
+		this.tryshoot = this.lclick||this.space;
 		if (this.tryshoot&&this.curwep.rate.ready)
 			this.shoot();
 
