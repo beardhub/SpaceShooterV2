@@ -25,9 +25,12 @@ var devtools;
 var spawner;
 var omega = false, omegaunlock = "";
 var alphabet = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"];
-var version = "0.7.4";
+var version = "0.7.4.5";
 
 function init(){
+  //window.onwheel = preventDefault; // modern standard
+  //window.onmousewheel = document.onmousewheel = preventDefault; // older browsers, IE
+  //window.ontouchmove  = preventDefault; // mobile
 	document.getElementById("version").innerHTML = version+"<br>";
 	devtools = new setdevtools();
 
@@ -39,6 +42,11 @@ function init(){
 	world = new b2World(new b2Vec2(0,0),false);
 	world.SetContactListener(MakeContactListener());
 	activatedebug();
+
+	var om = Number(localStorage.getItem("omega"));
+	omega = om > 0;
+	//alert(omega+" "+omegaunlock);
+	//if (omega == null){ omega = false; alert("und");}
 
 	gos = [];
 	counters = [];
@@ -63,6 +71,7 @@ function init(){
 	if (localStorage.getItem("playerweapon"))
 		player.switchwep(Number(localStorage.getItem("playerweapon")));
 
+
 	mouse = {
 		x: 0,
 		y: 0,
@@ -77,9 +86,10 @@ function init(){
 	document.getElementById("canvas").addEventListener('drag',mousemove);
 
 	document.addEventListener('keydown', function(event) {
+		var code = "supersecretcode";
 		omegaunlock+=alphabet[event.keyCode-65];
-		if ("kayle".indexOf(omegaunlock)!=0)omegaunlock = "";
-		if (omegaunlock == "kayle") toggleomega();
+		if (code.indexOf(omegaunlock)!=0)omegaunlock = "";
+		if (omegaunlock == code) toggleomega();
 		switch(event.keyCode){
 			case 49:case 50:case 51:case 52:case 53:
 			player.switchwep(event.keyCode-48);break;
@@ -112,6 +122,10 @@ function toggleomega(){
 	if (!omega){ alert("Omega weapons activated. Re-enter code to deactivate.");alert("Beware of lag.");}
 	else alert("Omega weapons deactivated.");
 	omega = !omega;
+	if (omega) 
+	localStorage.setItem("omega",1);
+	else 
+	localStorage.setItem("omega",-1);
 	player.arsenal = [new pBeam(),new pSplitter(),new pHeavy(),new pGatling(),new pIncinerator()];
 	player.switchwep(Number(localStorage.getItem("playerweapon")));
 }
@@ -398,8 +412,8 @@ function Spawner(){
 	this.spawn = function(clss){
 		var x, y;
 		do{
-			x = (Math.random()-.5)*80*2;
-			y = (Math.random()-.5)*55*2;
+			x = (Math.random()-.5)*100*2;
+			y = (Math.random()-.5)*80*2;
 		}while(Math.abs(x)<76&&Math.abs(y)<52);
 		x+=player.p.x;
 		y+=player.p.y;
@@ -615,7 +629,7 @@ function pSplitter(){
 		this.rate = new Counter(15);
 		this.rate.loop = true;
 		this.rate.makeready();
-		this.damage = 7;
+		this.damage = 1;
 		this.range = 100/.7;
 		this.dt = 0;
 		this.speed = 50;
@@ -947,6 +961,11 @@ function pIncinerator(){
 		world.DestroyBody(this.body);
 		this.rate.dispose();
 	}
+}function preventDefault(e) {
+  e = e || window.event;
+  if (e.preventDefault)
+      e.preventDefault();
+  e.returnValue = false;  
 }
 function Star(){
 	this.rl = -2;
@@ -960,7 +979,7 @@ function Star(){
 		this.keeponscreen();
 	}
 	this.render = function(){
-		ctx.drawImage(istar,this.p.x*scale,this.p.y*scale,this.scale*.75*istar.width,this.scale*.75*istar.height);
+		ctx.drawImage(istar,this.p.x*scale,this.p.y*scale);//,this.scale*.75*istar.width,this.scale*.75*istar.height);
 		//dynamicdraw(istar,this.p.x,this.p.y,0,this.scale*.75,this.scale*.75);
 	}
 	this.keeponscreen = function(){
