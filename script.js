@@ -23,8 +23,10 @@ var scale = 32;
 var viewscale = 1, viewslot;
 var devtools;
 var spawner;
+var version = "0.7.2";
 
 function init(){
+	document.getElementById("version").innerHTML = version+"<br>";
 	devtools = new setdevtools();
 
 	loadAssets();
