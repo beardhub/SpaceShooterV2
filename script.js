@@ -53,8 +53,8 @@ function init(){
 	resizewin();
 
 	window.onresize = function(){resizewin();}
-	window.onmousedown = function(){player.lclick = true;}
-	window.onmouseup = function(){player.lclick = false;}
+	//window.onmousedown = function(){player.lclick = true;}
+	//window.onmouseup = function(){player.lclick = false;}
 
 	document.getElementById("info").innerHTML+="<div id=\"zoom\">1x</div>";
 
@@ -81,7 +81,8 @@ function init(){
 	document.getElementById("canvas").addEventListener('drag',mousemove);
 
 	document.addEventListener('keydown', function(event) {
-		var code = "supersecretcode";
+		var code = "thesupersecretcode";
+		if (omega) code = "turnoff";
 		omegaunlock+=alphabet[event.keyCode-65];
 		if (code.indexOf(omegaunlock)!=0)omegaunlock = "";
 		if (omegaunlock == code) toggleomega();
@@ -114,7 +115,7 @@ function setdevtools(){
 	this.imgbox = false;
 }
 function toggleomega(){
-	if (!omega){ alert("Omega weapons activated. Re-enter code to deactivate.");alert("Beware of lag.");}
+	if (!omega){ alert("Omega weapons activated. Enter 'turnoff' to deactivate.");alert("Beware of lag.");}
 	else alert("Omega weapons deactivated.");
 	omega = !omega;
 	if (omega) 
