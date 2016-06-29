@@ -271,7 +271,7 @@ function Player(){
 	this.p = new b2Vec2(0,0);
 	this.aim = new b2Vec2(0,1);
 	this.angle = Math.atan2(this.aim.x,this.aim.y);
-	this.arsenal = [new pBeam(),new pSplitter()];//,new pHeavy(),new pGatling(),new pMissile()];
+	this.arsenal = [new pBeam(),new pSplitter(),new pHeavy(),new pGatling()];//,new pMissile()];
 	this.curwep = this.arsenal[0];
 	this.body.SetUserData(this);
 	gos.push(this);
@@ -675,39 +675,130 @@ function pSplitter(){
 		gos.splice(gos.indexOf(this),1);
 		world.DestroyBody(this.body);
 	}
-
-
-
-
-
-
-/*
-	this.rate = new Counter(35);
+}
+function pHeavy(){
+	this.categ = "proj";
+	this.img = iheavy;
+	this.rate = new Counter(85);
 	this.rate.loop = true;
 	this.rate.makeready();
+	this.damage = 15;
+	this.range = 45;
+	this.dt = 0;
+	this.speed = 20;
+	this.pierce = 3;
+	this.rl = -1;
 	this.spawn = function(info){
-		var p = new Projectile();
-		p.img = isplitter;
+		var p = new pHeavy();
 		p.source = info.s;
-		p.damage = 2;
-		p.range = 45;
-		p.speed = 35;
-		p.pierce = 0;
-		p.burst = function(){
-			
-		}
-		p.collide = function(other){
-			this.defaultcollide(other);
-			this.burst();
-		}
 		info.a.Normalize();
+		info.a.Multiply(4);
+		p.body = circlebody(p.img.width/scale/4,info.p.x+info.a.x,info.p.y+info.a.y,true);
+		info.a.Multiply(p.speed/4);
+		p.body.SetLinearVelocity(info.a);
+		p.body.SetUserData(p);
+		gos.push(p);
+	}
+	this.update = function(){
+		if (this.pierce < 0)
+			this.lastpierce();
+		this.dt+=this.body.GetLinearVelocity().Length()/60;
+		if (this.dt > this.range)
+			this.outofrange();
+	}
+	this.render = function(){
+		var b = this.body.GetPosition(),
+			v = this.body.GetLinearVelocity();
+		dynamicdraw(this.img,b.x,b.y,Math.atan2(v.y,v.x),1.5,1.5,this.img.width/2,this.img.width/2,true);
+	}
+	this.collide = function(other){
+		switch(other.categ){
+			case "play":
+				if (this.source != "p")
+					this.pierce--;
+				break;
+			case "enem":
+				if (this.source != "e")
+					this.pierce--;
+				break;
+		}
+	}
+	this.lastpierce = function(){this.dispose();}
+	this.outofrange = function(){this.dispose();}
+	this.dispose = function(){
+		gos.splice(gos.indexOf(this),1);
+		world.DestroyBody(this.body);
+	}
+}
+function pGatling(){
+	this.categ = "proj";
+	this.img = igatling;
+	this.rate = new Counter(2);
+	this.rate.loop = true;
+	this.rate.makeready();
+	this.damage = 1;
+	this.range = 45;
+	this.dt = 0;
+	this.speed = 35;
+	this.pierce = 0;
+	this.rl = -1;
+	this.spawn = function(info){
+		//var info2 = info;
+		var p = new pGatling();
+		p.source = info.s;
+		var t = Math.atan2(info.a.y,info.a.x);
+		t+=(Math.random()-.5)*Math.PI/180*5;
+		info.a = new b2Vec2(Math.cos(t),Math.sin(t));
+		//info.a.Multiply(4);
 		p.body = circlebody(p.img.width/scale/4,info.p.x+info.a.x,info.p.y+info.a.y,true);
 		info.a.Multiply(p.speed);
 		p.body.SetLinearVelocity(info.a);
 		p.body.SetUserData(p);
 		gos.push(p);
+		/*
+		var p2 = new Gatling();
+		p2.source = info2.s;
+		var t2 = Math.atan2(info2.a.y,info2.a.x);
+		t2+=(Math.random()-.5)*Math.PI/180*3;
+		info2.a = new b2Vec2(Math.cos(t2),Math.sin(t2));
+		//info.a.Multiply(4);
+		p2.body = circlebody(p2.img.width/scale/4,info2.p.x+info2.a.x,info2.p.y+info2.a.y,true);
+		info2.a.Multiply(p2.speed);
+		p2.body.SetLinearVelocity(info2.a);
+		p2.body.SetUserData(p2);
+		gos.push(p2);
+		*/
 	}
-*/
+	this.update = function(){
+		if (this.pierce < 0)
+			this.lastpierce();
+		this.dt+=this.body.GetLinearVelocity().Length()/60;
+		if (this.dt > this.range)
+			this.outofrange();
+	}
+	this.render = function(){
+		var b = this.body.GetPosition(),
+			v = this.body.GetLinearVelocity();
+		dynamicdraw(this.img,b.x,b.y,Math.atan2(v.y,v.x),1,1,this.img.width/2,this.img.width/2,true);
+	}
+	this.collide = function(other){
+		switch(other.categ){
+			case "play":
+				if (this.source != "p")
+					this.pierce--;
+				break;
+			case "enem":
+				if (this.source != "e")
+					this.pierce--;
+				break;
+		}
+	}
+	this.lastpierce = function(){this.dispose();}
+	this.outofrange = function(){this.dispose();}
+	this.dispose = function(){
+		gos.splice(gos.indexOf(this),1);
+		world.DestroyBody(this.body);
+	}
 }
 function Star(){
 	this.rl = -2;
